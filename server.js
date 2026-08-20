@@ -46,7 +46,7 @@ io.on('connection', (socket) => {
         console.log(`=== MATCH STARTED === Room: ${roomId} | P1: ${p1.id} vs P2: ${p2.id}`);
     }
 
-    // Direct relay for spawning units between players in the same room
+    // Direct synchronization relays between players in the same room
     socket.on('spawn_unit', (data) => {
         socket.to(data.roomId).emit('spawn_unit', data);
     });

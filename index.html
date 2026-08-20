@@ -83,6 +83,9 @@
         const wWidth = 120, wDepth = 150, rc = new THREE.Raycaster(), mouse = new THREE.Vector2();
         let pTex, aTex, gold = 200, goldTimer = 0, enemyGold = 200;
         const COSTS = { infantry: 15, tank: 60, helicopter: 95, wall: 50, tower: 100 };
+        const T_UP = {1:{hp:300,dmg:35,cd:1.2,r:0},2:{cost:75,hp:300,dmg:35,cd:1.2,r:15},3:{cost:200,hp:300,dmg:70,cd:.6,r:15},4:{cost:350,hp:600,dmg:70,cd:.6,r:15},5:{cost:500,hp:1200,dmg:70,cd:.6,r:45}};
+        const TR_UP = {1:{mD:1,mC:1,mH:1,r:0},2:{cost:40,mD:1,mC:1,mH:1,r:6},3:{cost:80,mD:2,mC:.5,mH:1,r:6},4:{cost:140,mD:2,mC:.5,mH:2,r:6},5:{cost:220,mD:2,mC:.5,mH:4,r:20}};
+        const W_UP = {1:{hp:400,r:0},2:{cost:75,hp:400,r:20},3:{cost:150,hp:650,r:20},4:{cost:250,hp:1300,r:40}};
         const HP_M = { infantry: 40, tank: 250, helicopter: 120, wall: 400, tower: 300, base: 1000 }, DMG = { infantry: 8, tank: 45, helicopter: 25 };
         const aiSpawnPoint = new THREE.Vector3(50, 10, -65), playerSpawnPoint = new THREE.Vector3(-50, 10, 65);
         let playerBase, aiBase, gameOverActive = false;
@@ -124,10 +127,28 @@
             let wM = new THREE.Mesh(new THREE.PlaneGeometry(160,100), new THREE.MeshStandardMaterial({color:0xffaa00})); wM.position.set(0,35,-80); scene.add(wM);
             scene.add(makeBanner());
             let fl = new THREE.Mesh(new THREE.PlaneGeometry(160,160), new THREE.MeshStandardMaterial({color:0x443a33})); fl.rotation.x = -Math.PI/2; scene.add(fl);
+            
             terrainGeo = new THREE.PlaneGeometry(wWidth, wDepth, 10, 10).rotateX(-Math.PI/2);
             let p = terrainGeo.attributes.position; for(let i=0;i<p.count;i++) p.setY(i,10+Math.sin(p.getX(i)*0.15)*0.1);
             terrainGeo.computeVertexNormals(); terrainMesh = new THREE.Mesh(terrainGeo, new THREE.MeshStandardMaterial({color:0xddb36e,flatShading:true})); scene.add(terrainMesh);
             
+            let lMat = new THREE.LineBasicMaterial({color:0x66523f});
+            for(let i=1;i<=3;i++) {
+                scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-wWidth/2+i*30,10.1,-wDepth/2),new THREE.Vector3(-wWidth/2+i*30,10.1,wDepth/2)]),lMat));
+            }
+            for(let j=1;j<=4;j++) {
+                scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-wWidth/2,10.1,-wDepth/2+j*30),new THREE.Vector3(wWidth/2,10.1,-wDepth/2+j*30)]),lMat));
+            }
+            for(let i=1;i<=3;i++) for(let j=1;j<=4;j++) makeTower(-wWidth/2+i*30, getH(-wWidth/2+i*30,-wDepth/2+j*30), -wDepth/2+j*30);
+            
+            let wSet = new Set();
+            for(let c=0;c<5;c++) for(let r=0;r<4;r++) {
+                let xS = -wWidth/2+r*30, xE = xS+30, zS = -wDepth/2+c*30, zE = zS+30;
+                let n=`${xS},${zS}_${xE},${zS}`, s=`${xS},${zE}_${xE},${zE}`, w=`${xS},${zS}_${xS},${zE}`, e=`${xE},${zS}_${xE},${zE}`;
+                if(!wSet.has(n)){ makeWall((xS+xE)/2,zS,30,0); wSet.add(n); } if(!wSet.has(s)){ makeWall((xS+xE)/2,zE,30,0); wSet.add(s); }
+                if(!wSet.has(w)){ makeWall(xS,(zS+zE)/2,30,Math.PI/2); wSet.add(w); } if(!wSet.has(e)){ makeWall(xE,(zS+zE)/2,30,Math.PI/2); wSet.add(e); }
+            }
+
             playerBase = makeBase(playerSpawnPoint.x, playerSpawnPoint.z, 'player'); 
             aiBase = makeBase(aiSpawnPoint.x, aiSpawnPoint.z, 'enemy');
             
@@ -155,7 +176,11 @@
             window.addEventListener('resize',()=>{camera.aspect=window.innerWidth/window.innerHeight;camera.updateProjectionMatrix();renderer.setSize(window.innerWidth,window.innerHeight);});
         }
 
-        function getH(x,z) { return 10; }
+        function getH(x,z) {
+            if(Math.abs(x)>wWidth/2||Math.abs(z)>wDepth/2)return 0;
+            let p=terrainGeo.attributes.position, cl=10, mD=Infinity;
+            for(let i=0;i<p.count;i++){let d=Math.pow(p.getX(i)-x,2)+Math.pow(p.getZ(i)-z,2);if(d<mD){mD=d;cl=p.getY(i);}} return cl;
+        }
         function inP(x,z){return myTeam==='player' ? (x>=-60&&x<=-30&&z>=45&&z<=75) : (x>=30&&x<=60&&z>=-75&&z<=-45);}
 
         function makeHB(w,h,gr=false) {
@@ -167,12 +192,62 @@
             if(!m||!m.userData.ctx)return; let ctx=m.userData.ctx, pct=Math.max(0,cur/max);
             ctx.fillStyle='#222';ctx.fillRect(0,0,128,32);ctx.fillStyle='#0f0';ctx.fillRect(4,4,Math.floor(120*pct),24);m.userData.t.needsUpdate=true;
         }
+        function makeBB(txt,col) {
+            let c=document.createElement('canvas');c.width=256;c.height=128;let ctx=c.getContext('2d');
+            ctx.font='bold 54px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+            ctx.fillStyle='#000';ctx.fillText(txt,130,68);
+            ctx.fillStyle=col;ctx.fillText(txt,126,64);
+            let t=new THREE.CanvasTexture(c), m=new THREE.Mesh(new THREE.PlaneGeometry(4.5,2.25),new THREE.MeshBasicMaterial({map:t,side:2,transparent:true}));
+            m.userData={c,ctx,t}; return m;
+        }
+        function upUnitLevelBillboard(o) {
+            if(!o.levelBillboard)return; let ctx=o.levelBillboard.userData.ctx; ctx.clearRect(0,0,128,64); ctx.font='bold 38px sans-serif'; ctx.textAlign='center'; ctx.fillStyle='#000';
+            let txt = "" + o.level; ctx.fillText(txt,66,40); ctx.fillStyle='#ffd700'; ctx.fillText(txt,64,38); o.levelBillboard.userData.t.needsUpdate=true;
+        }
+        function upCost(o) {
+            let updateBillboardSide = (bb) => {
+                if(!bb) return; let ctx=bb.userData.ctx; ctx.clearRect(0,0,256,128); ctx.font='bold 54px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillStyle='#000';
+                if(!o.purchased){ let c=COSTS[o.type]*Math.pow(2,o.purchaseCount); ctx.fillText("$"+c,130,68); ctx.fillStyle='#ffd700'; ctx.fillText("$"+c,126,64); }
+                else if(o.level<(o.type==='wall'?4:5)){ let n=o.level+1, c=(o.type==='wall'?W_UP:T_UP)[n].cost; ctx.fillText(`L${n}:$${c}`,130,68); ctx.fillStyle='#fff'; ctx.fillText(`L${n}:$${c}`,126,64); }
+                else{ ctx.fillText(o.type==='wall'?(o.isOpen?"OPEN":"CLOSE"):"MAX",130,68); ctx.fillStyle='#0fc'; ctx.fillText(o.type==='wall'?(o.isOpen?"OPEN":"CLOSE"):"MAX",126,64); }
+                bb.userData.t.needsUpdate=true;
+            };
+            updateBillboardSide(o.costBillboard);
+            updateBillboardSide(o.costBillboardBack);
+        }
         function makeBase(x,z,tm) {
             let y=getH(x,z), g=new THREE.Group(); g.position.set(x,y,z);
             let m=new THREE.Mesh(new THREE.PlaneGeometry(16,16).rotateX(-Math.PI/2),new THREE.MeshStandardMaterial({map:tm==='player'?pTex:aTex}));
             m.position.y=0.15; g.add(m); let hp=makeHB(14,3,true); hp.position.y=0.2; g.add(hp); scene.add(g);
             return {type:'base',team:tm,hp:HP_M.base,maxHp:HP_M.base,hpBar:hp,position:new THREE.Vector3(x,y,z)};
         }
+        function makeTower(x,y,z) {
+            let g=new THREE.Group(); g.position.set(x,y,z); let mat=new THREE.MeshStandardMaterial({color:0x4477aa,transparent:true,opacity:0.2});
+            let b=new THREE.Mesh(new THREE.CylinderGeometry(2,2.5,1.5,8),mat); b.position.y=0.75; g.add(b);
+            let s=new THREE.Mesh(new THREE.CylinderGeometry(1.2,1.6,6,8),mat); s.position.y=4.5; g.add(s);
+            let h=new THREE.Mesh(new THREE.CylinderGeometry(2,1.5,1.5,8),mat); h.position.y=8.25; g.add(h);
+            let gn=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.5,3),mat); gn.position.set(0,8.25,1.5); g.add(gn);
+            let rr=new THREE.Mesh(new THREE.RingGeometry(29,30,32).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0x4477aa,transparent:true,opacity:0})); rr.position.y=0.1; g.add(rr);
+            let hb=new THREE.Mesh(new THREE.CylinderGeometry(2.5,2.5,9,8),new THREE.MeshBasicMaterial({visible:false})); hb.position.y=4.5; g.add(hb);
+            let hp=makeHB(2.5,0.5); hp.position.y=10.3; g.add(hp); hp.visible=false;
+            let cb=makeBB("$100",'#ffd700'); cb.position.y=9.5; g.add(cb); scene.add(g);
+            let tObj={type:'tower',team:'neutral',x,z,group:g,components:[b,s,h,gn],radRing:rr,hb,hpBar:hp,costBillboard:cb,purchased:false,purchaseCount:0,level:1,hp:HP_M.tower,maxHp:HP_M.tower,attackCD:0,tD:35,fR:1.2};
+            hb.userData.towerRef=tObj; towers.push(tObj); towerHitboxes.push(hb); upCost(tObj);
+        }
+        function makeWall(x,z,len,rot) {
+            let g=new THREE.Group(); g.position.set(x,getH(x,z),z); g.rotation.y=rot; let mat=new THREE.MeshStandardMaterial({color:0xaa6644,transparent:true,opacity:0.15});
+            let sL=(len-6)/2, lW=new THREE.Mesh(new THREE.BoxGeometry(sL,3.5,0.8),mat); lW.position.set(-len/2+sL/2,1.75,0); g.add(lW);
+            let rW=new THREE.Mesh(new THREE.BoxGeometry(sL,3.5,0.8),mat); rW.position.set(len/2-sL/2,1.75,0); g.add(rW);
+            let gt=new THREE.Mesh(new THREE.BoxGeometry(6,3,0.5),mat); gt.position.set(0,1.5,0); g.add(gt);
+            let hp=makeHB(4.5,0.7); hp.position.set(5.5,2.4,-0.42); hp.rotation.y=Math.PI; g.add(hp); hp.visible=false;
+            let hpB=makeHB(4.5,0.7); hpB.position.set(5.5,2.4,0.42); g.add(hpB); hpB.visible=false;
+            let cb=makeBB("$50",'#ffff00'); cb.position.set(0,2.2,-0.55); cb.rotation.y=Math.PI; g.add(cb);
+            let cbB=makeBB("$50",'#ffff00'); cbB.position.set(0,2.2,0.55); g.add(cbB);
+            let hb=new THREE.Mesh(new THREE.BoxGeometry(len,3.5,1.2),new THREE.MeshBasicMaterial({visible:false})); hb.position.y=1.75; g.add(hb); scene.add(g);
+            let wObj={type:'wall',team:'neutral',x,z,rotationY:rot,length:len,group:g,components:[lW,rW,gt],gateMesh:gt,hb,hpBar:hp,hpBarBack:hpB,costBillboard:cb,costBillboardBack:cbB,purchased:false,purchaseCount:0,level:1,isOpen:false,targetY:1.5,hp:HP_M.wall,maxHp:HP_M.wall};
+            hb.userData.wallRef=wObj; walls.push(wObj); wallHitboxes.push(hb); upCost(wObj);
+        }
+
         function endG(w) { if(gameOverActive)return; gameOverActive=true; let s=document.getElementById('game-over-screen'); s.innerText=w===myTeam?"VICTORY":"DEFEAT"; s.style.display="flex"; setTimeout(()=>location.reload(),4000); }
 
         function spU(typ, tm, loc = null, sendNet = false) {

@@ -70,13 +70,12 @@
         });
 
         socket.on('assigned_role', (data) => {
-            myTeam = data.team; // 'player' (P1 - Green) or 'enemy' (P2 - Red)
+            myTeam = data.team; // 'player' (Green) or 'enemy' (Red)
             currentRoomId = data.roomId;
             
-            // If assigned as Player 2 (enemy), flip camera position and initial looking angle to the red side
             if (myTeam === 'enemy') {
                 camera.position.set(50, 38, -95);
-                yaw = Math.PI; // Face back toward the board
+                yaw = Math.PI; 
                 camera.quaternion.setFromEuler(new THREE.Euler(pitch, yaw, 0, 'YXZ'));
             }
 
@@ -130,7 +129,9 @@
                 new THREE.PlaneGeometry(120, 60), 
                 new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: 2 })
             );
-            m.position.set(0, 40, -79.5); 
+            // Moved banner to the left side wall facing inward
+            m.position.set(-79.5, 40, 0);
+            m.rotation.y = Math.PI / 2;
             return m;
         }
 
@@ -141,10 +142,10 @@
             camera.quaternion.setFromEuler(new THREE.Euler(pitch,yaw,0,'YXZ'));
             renderer = new THREE.WebGLRenderer({antialias:true}); renderer.setSize(window.innerWidth, window.innerHeight);
             document.getElementById('c').appendChild(renderer.domElement);
-            pTex = genTex(['#354a21','#1e2b13','#4d6635']); // Green team texture
-            aTex = genTex(['#801111','#3b0505','#b32222']); // Red team texture
+            pTex = genTex(['#354a21','#1e2b13','#4d6635']); 
+            aTex = genTex(['#801111','#3b0505','#b32222']);
             scene.add(new THREE.AmbientLight(0xffffff,0.65)); let sun = new THREE.DirectionalLight(0xfffaed,0.85); sun.position.set(30,80,20); scene.add(sun);
-            let wM = new THREE.Mesh(new THREE.PlaneGeometry(160,100), new THREE.MeshStandardMaterial({color:0xffaa00})); wM.position.set(0,35,-80); scene.add(wM);
+            
             scene.add(makeBanner());
             let fl = new THREE.Mesh(new THREE.PlaneGeometry(160,160), new THREE.MeshStandardMaterial({color:0x443a33})); fl.rotation.x = -Math.PI/2; scene.add(fl);
             
@@ -205,7 +206,6 @@
             for(let i=0;i<p.count;i++){let d=Math.pow(p.getX(i)-x,2)+Math.pow(p.getZ(i)-z,2);if(d<mD){mD=d;cl=p.getY(i);}} return cl;
         }
         function inP(x,z){
-            // Player 1 ('player') spawns on the bottom (green) side; Player 2 ('enemy') spawns on the top (red) side
             if(myTeam === 'player') {
                 return x>=-60&&x<=-30&&z>=45&&z<=75;
             } else {
@@ -333,7 +333,6 @@
                 if(sendNet && currentRoomId) socket.emit('spawn_unit', { roomId: currentRoomId, type: typ, team: tm, pos: {x: loc.x, y: loc.y, z: loc.z} });
             }
 
-            // Player 1 ('player') gets green (pTex), Player 2 ('enemy') gets red (aTex)
             let unitMatTexture = (tm === 'player') ? pTex : aTex;
             let g=new THREE.Group(), mat=new THREE.MeshStandardMaterial({map: unitMatTexture}), img=new THREE.Group(); g.add(img);
             let tur=null;

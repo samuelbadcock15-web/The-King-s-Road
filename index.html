@@ -129,7 +129,6 @@
                 new THREE.PlaneGeometry(120, 60), 
                 new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: 2 })
             );
-            // Moved banner to the left side wall facing inward
             m.position.set(-79.5, 40, 0);
             m.rotation.y = Math.PI / 2;
             return m;
@@ -376,6 +375,32 @@
             spU(data.type, data.team, new THREE.Vector3(data.pos.x, data.pos.y, data.pos.z));
         });
 
+        // Network listeners for opponent structures
+        socket.on('buy_structure', (data) => {
+            if (data.type === 'tower') {
+                let t = towers.find(item => item.x === data.x && item.z === data.z);
+                if (t) { t.purchaseCount = data.purchaseCount; ownTower(t, data.team); }
+            } else if (data.type === 'wall') {
+                let w = walls.find(item => item.x === data.x && item.z === data.z && item.rotationY === data.rotationY);
+                if (w) { w.purchaseCount = data.purchaseCount; ownWall(w, data.team); }
+            }
+        });
+
+        socket.on('upgrade_structure', (data) => {
+            if (data.type === 'tower') {
+                let t = towers.find(item => item.x === data.x && item.z === data.z);
+                if (t) { upStruct(t); }
+            } else if (data.type === 'wall') {
+                let w = walls.find(item => item.x === data.x && item.z === data.z && item.rotationY === data.rotationY);
+                if (w) { upStruct(w); }
+            }
+        });
+
+        socket.on('toggle_gate', (data) => {
+            let w = walls.find(item => item.x === data.x && item.z === data.z && item.rotationY === data.rotationY);
+            if (w) { w.isOpen = data.isOpen; w.targetY = w.isOpen ? -1.4 : 1.5; upCost(w); }
+        });
+
         function getLOS(orig,targ,tm, targetObj = null) {
             let d=new THREE.Vector3().subVectors(targ,orig), dst=d.length(); d.normalize(); let ray=new THREE.Ray(orig,d), cObstacle=null, cD=dst;
             for(let w of walls){
@@ -453,8 +478,10 @@
                     let cost=COSTS.tower*Math.pow(2,t.purchaseCount);
                     if(!t.purchased && canTeamBuy(t, myTeam) && gold>=cost) {
                         gold-=cost; document.getElementById('gold-val').innerText=gold; ownTower(t,myTeam);
+                        if(currentRoomId) socket.emit('buy_structure', { roomId: currentRoomId, type: 'tower', x: t.x, z: t.z, team: myTeam, purchaseCount: t.purchaseCount });
                     } else if(t.team===myTeam&&t.level<5&&gold>=T_UP[t.level+1].cost){
                         gold-=T_UP[t.level+1].cost; document.getElementById('gold-val').innerText=gold; upStruct(t);
+                        if(currentRoomId) socket.emit('upgrade_structure', { roomId: currentRoomId, type: 'tower', x: t.x, z: t.z });
                     }
                     lastClick=now; return;
                 }
@@ -464,9 +491,16 @@
                     let cost=COSTS.wall*Math.pow(2,w.purchaseCount);
                     if(!w.purchased && canTeamBuy(w, myTeam) && gold>=cost) {
                         gold-=cost; document.getElementById('gold-val').innerText=gold; ownWall(w,myTeam);
+                        if(currentRoomId) socket.emit('buy_structure', { roomId: currentRoomId, type: 'wall', x: w.x, z: w.z, rotationY: w.rotationY, team: myTeam, purchaseCount: w.purchaseCount });
                     } else if(w.team===myTeam) {
-                        if(w.level<4&&gold>=W_UP[w.level+1].cost){ gold-=W_UP[w.level+1].cost; document.getElementById('gold-val').innerText=gold; upStruct(w); }
-                        else if(w.level>=4){ w.isOpen=!w.isOpen; w.targetY=w.isOpen?-1.4:1.5; upCost(w); }
+                        if(w.level<4&&gold>=W_UP[w.level+1].cost){ 
+                            gold-=W_UP[w.level+1].cost; document.getElementById('gold-val').innerText=gold; upStruct(w); 
+                            if(currentRoomId) socket.emit('upgrade_structure', { roomId: currentRoomId, type: 'wall', x: w.x, z: w.z, rotationY: w.rotationY });
+                        }
+                        else if(w.level>=4){ 
+                            w.isOpen=!w.isOpen; w.targetY=w.isOpen?-1.4:1.5; upCost(w); 
+                            if(currentRoomId) socket.emit('toggle_gate', { roomId: currentRoomId, x: w.x, z: w.z, rotationY: w.rotationY, isOpen: w.isOpen });
+                        }
                     }
                     lastClick=now; return;
                 }

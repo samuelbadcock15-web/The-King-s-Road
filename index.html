@@ -301,7 +301,6 @@
 
         function triggerSpawn(typ) {
             if(!matchStarted) return;
-            // Spawn relative to the player's own designated base spawn point
             let basePt = myTeam === 'player' ? playerSpawnPoint : aiSpawnPoint;
             let offset = new THREE.Vector3((Math.random()-.5)*10, 0, (Math.random()-.5)*10);
             let spawnLoc = basePt.clone().add(offset);
@@ -315,12 +314,7 @@
             for(let i=0;i<p.count;i++){let d=Math.pow(p.getX(i)-x,2)+Math.pow(p.getZ(i)-z,2);if(d<mD){mD=d;cl=p.getY(i);}} return cl;
         }
         function inP(x,z){
-            // Players can click anywhere within their half of the map to spawn troops near their base
-            if(myTeam === 'player') {
-                return x>=-60&&x<=60&&z>=30&&z<=75;
-            } else {
-                return x>=-60&&x<=60&&z>=-75&&z<=-30;
-            }
+            return x>=-60&&x<=60&&z>=-75&&z<=75;
         }
         
         function hasBaseFullySecured(tm) {

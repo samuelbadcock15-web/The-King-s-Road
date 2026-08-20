@@ -70,10 +70,17 @@
         });
 
         socket.on('assigned_role', (data) => {
-            myTeam = data.team; // Explicitly 'player' (P1) or 'enemy' (P2) from server
+            myTeam = data.team; // 'player' (P1 - Green) or 'enemy' (P2 - Red)
             currentRoomId = data.roomId;
             
-            document.getElementById('match-status-text').innerText = `CONNECTED AS ${myTeam.toUpperCase()}! MATCH STARTING...`;
+            // If assigned as Player 2 (enemy), flip camera position and initial looking angle to the red side
+            if (myTeam === 'enemy') {
+                camera.position.set(50, 38, -95);
+                yaw = Math.PI; // Face back toward the board
+                camera.quaternion.setFromEuler(new THREE.Euler(pitch, yaw, 0, 'YXZ'));
+            }
+
+            document.getElementById('match-status-text').innerText = `CONNECTED AS ${myTeam.toUpperCase() === 'PLAYER' ? 'GREEN (PLAYER 1)' : 'RED (PLAYER 2)'}! MATCH STARTING...`;
             setTimeout(() => {
                 document.getElementById('match-status-screen').style.display = 'none';
                 matchStarted = true;
@@ -198,7 +205,7 @@
             for(let i=0;i<p.count;i++){let d=Math.pow(p.getX(i)-x,2)+Math.pow(p.getZ(i)-z,2);if(d<mD){mD=d;cl=p.getY(i);}} return cl;
         }
         function inP(x,z){
-            // Player 1 spawns on green side, Player 2 spawns on red/enemy side
+            // Player 1 ('player') spawns on the bottom (green) side; Player 2 ('enemy') spawns on the top (red) side
             if(myTeam === 'player') {
                 return x>=-60&&x<=-30&&z>=45&&z<=75;
             } else {
@@ -301,7 +308,7 @@
             let hp=makeHB(4.5,0.7); hp.position.set(5.5,2.4,-0.42); hp.rotation.y=Math.PI; g.add(hp); hp.visible=false;
             let hpB=makeHB(4.5,0.7); hpB.position.set(5.5,2.4,0.42); g.add(hpB); hpB.visible=false;
             let cb=makeBB("$50",'#ffff00'); cb.position.set(0,2.2,-0.55); cb.rotation.y=Math.PI; g.add(cb);
-            let cbB=makeBB("$50",'#ffff00'); cbB.position.set(0,2.2,0.55); g.add(cbB);
+            let cbB=makeBB("$50",'#ffff00'); cbB.position.set(0,2.2,0.55); cbB.rotation.y=0; g.add(cbB);
             let hb=new THREE.Mesh(new THREE.BoxGeometry(len,3.5,1.2),new THREE.MeshBasicMaterial({visible:false})); hb.position.y=1.75; g.add(hb); scene.add(g);
             let wObj={type:'wall',team:'neutral',x,z,rotationY:rot,length:len,group:g,components:[lW,rW,gt],gateMesh:gt,hb,hpBar:hp,hpBarBack:hpB,costBillboard:cb,costBillboardBack:cbB,purchased:false,purchaseCount:0,level:1,isOpen:false,targetY:1.5,hp:HP_M.wall,maxHp:HP_M.wall};
             hb.userData.wallRef=wObj; walls.push(wObj); wallHitboxes.push(hb); upCost(wObj);
@@ -326,7 +333,7 @@
                 if(sendNet && currentRoomId) socket.emit('spawn_unit', { roomId: currentRoomId, type: typ, team: tm, pos: {x: loc.x, y: loc.y, z: loc.z} });
             }
 
-            // Correct team texture mapping: Player 1 gets pTex (green), Player 2 gets aTex (red)
+            // Player 1 ('player') gets green (pTex), Player 2 ('enemy') gets red (aTex)
             let unitMatTexture = (tm === 'player') ? pTex : aTex;
             let g=new THREE.Group(), mat=new THREE.MeshStandardMaterial({map: unitMatTexture}), img=new THREE.Group(); g.add(img);
             let tur=null;

@@ -90,11 +90,13 @@
         <div id="info-btn" onclick="let h=document.getElementById('hud'); h.style.display=h.style.display==='block'?'none':'block';">i</div>
         <div id="hud">
             <b>ONLINE 1v1 STRATEGY</b> (+15 gold/s)<br><br>
+            <b>🏰 TERRITORY & REBUILD RULE:</b><br>
+            • Expand outward from your base!<br>
+            • Rebuild destroyed plots inside your claimed sector.<br><br>
             <b>📱 MOBILE CONTROLS:</b><br>
             • <b>Spawn Troops:</b> Tap left sidebar icons<br>
             • <b>Camera Pan:</b> Use left or right D-Pad<br>
-            • <b>Camera Look:</b> Drag finger across screen<br>
-            • <b>Build/Upgrade:</b> Tap towers/walls twice quickly<br><br>
+            • <b>Camera Look:</b> Drag finger across screen<br><br>
             <b>💻 PC CONTROLS:</b><br>
             • <b>Spawn Troops:</b> Press [1], [2], or [3]<br>
             • <b>Camera Move:</b> WASD keys<br>
@@ -288,7 +290,6 @@
             });
             document.addEventListener('keyup',e=>keys[e.code]=false);
             
-            // Unified touch/pointer tap to support both mobile and PC structure building and unit selection
             document.addEventListener('pointerdown', e => {
                 if(e.target.tagName !== 'CANVAS') return;
                 mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
@@ -320,6 +321,31 @@
             if(Math.abs(x)>wWidth/2||Math.abs(z)>wDepth/2)return 0;
             let p=terrainGeo.attributes.position, cl=10, mD=Infinity;
             for(let i=0;i<p.count;i++){let d=Math.pow(p.getX(i)-x,2)+Math.pow(p.getZ(i)-z,2);if(d<mD){mD=d;cl=p.getY(i);}} return cl;
+        }
+
+        // --- EXPANSION & REBUILD RULE ---
+        function canConnectToTeam(objPos, tm) {
+            let baseCenter = tm === 'player' ? playerSpawnPoint : aiSpawnPoint;
+            if (objPos.distanceTo(baseCenter) <= 35) return true;
+
+            for (let t of towers) {
+                if (t.purchased && t.team === tm && objPos.distanceTo(t.group.position) <= 35) return true;
+            }
+            for (let w of walls) {
+                if (w.purchased && w.team === tm && objPos.distanceTo(w.group.position) <= 35) return true;
+            }
+
+            // Allow rebuilding within territory zone even if a connecting link was destroyed
+            let hasNearbyActiveAlly = false;
+            for (let t of towers) {
+                if (t.team === tm && objPos.distanceTo(t.group.position) <= 45) { hasNearbyActiveAlly = true; break; }
+            }
+            if (!hasNearbyActiveAlly) {
+                for (let w of walls) {
+                    if (w.team === tm && objPos.distanceTo(w.group.position) <= 45) { hasNearbyActiveAlly = true; break; }
+                }
+            }
+            return hasNearbyActiveAlly;
         }
 
         function makeHB(w,h,gr=false) {
@@ -552,7 +578,6 @@
                 return;
             }
 
-            // Detect fast clicks or taps to trigger building and upgrading towers/walls
             let tH = rc.intersectObjects(towerHitboxes);
             let wH = rc.intersectObjects(wallHitboxes);
             let uHbs = units.filter(u=>u.team===myTeam).map(u=>u.hitbox), clU = rc.intersectObjects(uHbs);
@@ -569,6 +594,9 @@
             } else if(tH.length > 0) {
                 let t = tH[0].object.userData.towerRef;
                 let cost = COSTS.tower * Math.pow(2, t.purchaseCount);
+                if(!t.purchased) {
+                    if(!canConnectToTeam(t.group.position, myTeam)) return;
+                }
                 if(!t.purchased && gold >= cost) {
                     gold -= cost; document.getElementById('gold-val').innerText = gold; ownTower(t, myTeam);
                     if(currentRoomId) socket.emit('buy_structure', { roomId: currentRoomId, type: 'tower', x: t.x, z: t.z, team: myTeam, purchaseCount: t.purchaseCount });
@@ -579,6 +607,9 @@
             } else if(wH.length > 0) {
                 let w = wH[0].object.userData.wallRef;
                 let cost = COSTS.wall * Math.pow(2, w.purchaseCount);
+                if(!w.purchased) {
+                    if(!canConnectToTeam(w.group.position, myTeam)) return;
+                }
                 if(!w.purchased && gold >= cost) {
                     gold -= cost; document.getElementById('gold-val').innerText = gold; ownWall(w, myTeam);
                     if(currentRoomId) socket.emit('buy_structure', { roomId: currentRoomId, type: 'wall', x: w.x, z: w.z, rotationY: w.rotationY, team: myTeam, purchaseCount: w.purchaseCount });
@@ -597,6 +628,7 @@
                     socket.emit('unit_order_move', { roomId: currentRoomId, unitId: selected.id, target: {x: selected.target.x, y: selected.target.y, z: selected.target.z} });
                 }
             }
+            lastClick = now;
         }
 
         function animate() {

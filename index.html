@@ -94,7 +94,7 @@
     <div id="game-over-screen"></div>
 
     <script>
-        const socket = io("https://the-king-s-road-1.onrender.com", {
+        const socket = io("https://clear-horizons-q3u1.onrender.com", {
             transports: ['websocket', 'polling'],
             secure: true,
             reconnection: true,
@@ -256,7 +256,6 @@
             });
             document.addEventListener('keyup',e=>keys[e.code]=false);
             
-            // Unified pointer/click handler to bypass mobile double-tap zoom
             document.addEventListener('pointerdown', e => {
                 if(e.target.tagName !== 'CANVAS') return;
                 mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
@@ -537,7 +536,6 @@
                 return;
             }
 
-            // Single tap/click vs Double tap/click detection for building/upgrading
             if(now - lastClick < 350) {
                 let uHbs = units.filter(u=>u.team===myTeam).map(u=>u.hitbox), clU = rc.intersectObjects(uHbs);
                 if(clU.length > 0) {
@@ -601,9 +599,6 @@
             }
             lastClick = now;
         }
-
-        function onMD(e) { if(e.button===0) handleInteraction('left'); }
-        function onMU(e) {}
 
         function animate() {
             requestAnimationFrame(animate); let time=performance.now(), delta=(time-prevTime)/1000; prevTime=time;

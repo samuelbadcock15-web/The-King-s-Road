@@ -46,11 +46,12 @@ io.on('connection', (socket) => {
 
         rooms[roomId] = { p1: p1.id, p2: p2.id };
 
+        // Explicitly send distinct teams and player indices
         io.to(p1.id).emit('assigned_role', { playerIndex: 1, roomId, team: 'player' });
         io.to(p2.id).emit('assigned_role', { playerIndex: 2, roomId, team: 'enemy' });
 
         io.to(roomId).emit('start_match');
-        console.log(`Match started in room: ${roomId}`);
+        console.log(`Match started in room: ${roomId} (P1: ${p1.id}, P2: ${p2.id})`);
         broadcastPlayerCounts();
     }
 

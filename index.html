@@ -18,20 +18,20 @@
         .spawn-node span:first-child { font-size: 32px; font-weight: bold; }
         .spawn-node span:last-child { font-size: 14px; color: #ffd700; margin-top: 4px; font-weight: bold; }
 
-        /* Massive 6x D-Pad Controls (Bottom Left) */
-        #dpad { position: absolute; bottom: 20px; left: 20px; width: 300px; height: 300px; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 10px; z-index: 250; touch-action: none; opacity: 0.65; }
-        .d-btn { background: rgba(255,255,255,0.12); border: 2px solid rgba(255,255,255,0.25); border-radius: 16px; display: flex; justify-content: center; align-items: center; color: #fff; font-weight: bold; font-size: 36px; cursor: pointer; }
+        /* Massive D-Pad Controls Moved to Bottom Right */
+        #dpad { position: absolute; bottom: 25px; right: 25px; width: 340px; height: 340px; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 12px; z-index: 250; touch-action: none; opacity: 0.65; }
+        .d-btn { background: rgba(255,255,255,0.12); border: 2px solid rgba(255,255,255,0.25); border-radius: 20px; display: flex; justify-content: center; align-items: center; color: #fff; font-weight: bold; font-size: 42px; cursor: pointer; }
         .d-btn:active { background: rgba(0,255,204,0.35); }
         #d-up { grid-column: 2; grid-row: 1; }
         #d-left { grid-column: 1; grid-row: 2; }
         #d-right { grid-column: 3; grid-row: 2; }
         #d-down { grid-column: 2; grid-row: 3; }
-        #d-center { grid-column: 2; grid-row: 2; background: rgba(0,0,0,0.3); font-size: 14px; color: #aaa; border-radius: 50%; }
+        #d-center { grid-column: 2; grid-row: 2; background: rgba(0,0,0,0.3); font-size: 16px; color: #aaa; border-radius: 50%; }
 
         /* Top Right Info Button & Popout */
         #info-container { position: absolute; top: 20px; right: 20px; z-index: 200; }
         #info-btn { width: 36px; height: 36px; background: rgba(0,0,0,0.7); color: #ffd700; border: 2px solid #ffd700; border-radius: 50%; font-weight: bold; font-size: 20px; display: flex; justify-content: center; align-items: center; cursor: pointer; }
-        #hud { position: absolute; top: 45px; right: 0; color: #fff; background: rgba(0,0,0,.85); padding: 15px; border-radius: 5px; font-size: 12px; line-height: 1.4; width: 260px; display: none; box-shadow: 0 4px 10px rgba(0,0,0,0.5); border: 1px solid #444; }
+        #hud { position: absolute; top: 45px; right: 0; color: #fff; background: rgba(0,0,0,.85); padding: 15px; border-radius: 5px; font-size: 12px; line-height: 1.4; width: 300px; display: none; box-shadow: 0 4px 10px rgba(0,0,0,0.5); border: 1px solid #444; }
         #info-container:hover #hud, #info-container:active #hud { display: block; }
 
         /* Matchmaking Status Overlay */
@@ -66,7 +66,7 @@
         </div>
     </div>
 
-    <!-- Massive Transparent D-Pad Controls -->
+    <!-- Massive Transparent D-Pad Controls (Bottom Right) -->
     <div id="dpad">
         <div id="d-up" class="d-btn" ontouchstart="keys['KeyW']=true" ontouchend="keys['KeyW']=false" onmousedown="keys['KeyW']=true" onmouseup="keys['KeyW']=false">▲</div>
         <div id="d-left" class="d-btn" ontouchstart="keys['KeyA']=true" ontouchend="keys['KeyA']=false" onmousedown="keys['KeyA']=true" onmouseup="keys['KeyA']=false">◀</div>
@@ -78,11 +78,18 @@
     <div id="info-container">
         <div id="info-btn" onclick="let h=document.getElementById('hud'); h.style.display=h.style.display==='block'?'none':'block';">i</div>
         <div id="hud">
-            <b>MOBILE & PC STRATEGY</b> (+15 gold/s)<br><br>
-            <b>Spawn:</b> Left Sidebar Nodes or [1] Infantry | [2] Tank | [3] Heli<br><br>
-            <b>Select / Build:</b> Tap / Click Structure or Unit<br>
-            <b>Move / Attack:</b> Tap ground or Enemy<br>
-            <b>Camera:</b> Use D-Pad or RMB Drag / Touch Drag
+            <b>ONLINE 1v1 STRATEGY</b> (+15 gold/s)<br><br>
+            <b>📱 MOBILE CONTROLS:</b><br>
+            • <b>Spawn Troops:</b> Tap left sidebar icons (Infantry, Tank, Heli)<br>
+            • <b>Camera Pan:</b> Use bottom-right D-Pad buttons<br>
+            • <b>Camera Look:</b> Drag finger across screen<br>
+            • <b>Select/Build/Move:</b> Tap structures or ground<br><br>
+            <b>💻 PC CONTROLS:</b><br>
+            • <b>Spawn Troops:</b> Press [1], [2], or [3]<br>
+            • <b>Camera Move:</b> WASD keys<br>
+            • <b>Camera Look:</b> Hold RMB & drag mouse<br>
+            • <b>Select/Move:</b> Left-Click (LMB)<br>
+            • <b>Double-Click:</b> Buy / Upgrade structures
         </div>
     </div>
 

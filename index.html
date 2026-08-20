@@ -311,16 +311,19 @@
             gold -= COSTS[typ]; 
             document.getElementById('gold-val').innerText = gold;
 
+            let unitId = 'u_' + Math.random().toString(36.substr(2, 9));
+
             if(currentRoomId) {
                 socket.emit('spawn_unit', { 
                     roomId: currentRoomId, 
+                    id: unitId,
                     type: typ, 
                     team: myTeam, 
                     pos: { x: spawnLoc.x, y: spawnLoc.y, z: spawnLoc.z } 
                 });
             }
 
-            spU(typ, myTeam, spawnLoc);
+            spU(unitId, typ, myTeam, spawnLoc);
         }
 
         function getH(x,z) {
@@ -444,7 +447,7 @@
             o.hp=o.maxHp; upHB(o.hpBar,o.hp,o.maxHp); if(o.hpBarBack)upHB(o.hpBarBack,o.hp,o.maxHp); upCost(o);
         }
 
-        function spU(typ, tm, loc) {
+        function spU(id, typ, tm, loc) {
             if(!matchStarted) return;
 
             let actualTeam = (tm === myTeam) ? 'player' : 'enemy';
@@ -484,8 +487,8 @@
             let cb=makeBB("1",'#ffd700'); cb.position.y=typ==='infantry'?2.0:1.8; cb.rotation.y = (actualTeam === 'enemy') ? Math.PI : 0; g.add(cb); 
             g.position.copy(loc); scene.add(g);
             
-            // Troops spawn idle in the base (target set to null) until you select and command them!
             let o={
+                id: id,
                 mesh:g, innerMeshGroup:img, tankTurretGroup:tur, turretOT:0, turretTY:0, curTurY:0, 
                 hitbox:hb, ring:r, rangeRing:rangeRing, hpBar:hp, levelBillboard:cb, 
                 type:typ, team:actualTeam, level:1, speed:typ==='helicopter'?12:(typ==='tank'?4:5.5), 
@@ -495,7 +498,14 @@
         }
 
         socket.on('spawn_unit', (data) => {
-            spU(data.type, data.team, new THREE.Vector3(data.pos.x, data.pos.y, data.pos.z));
+            spU(data.id, data.type, data.team, new THREE.Vector3(data.pos.x, data.pos.y, data.pos.z));
+        });
+
+        socket.on('move_unit', (data) => {
+            let u = units.find(unit => unit.id === data.id);
+            if(u) {
+                u.target = new THREE.Vector3(data.target.x, data.target.y, data.target.z);
+            }
         });
 
         socket.on('buy_structure', (data) => {
@@ -644,10 +654,24 @@
                     }
                 } else if(tHits.length > 0 && selected) {
                     selected.target = tHits[0].point.clone();
+                    if(currentRoomId) {
+                        socket.emit('move_unit', {
+                            roomId: currentRoomId,
+                            id: selected.id,
+                            target: { x: selected.target.x, y: selected.target.y, z: selected.target.z }
+                        });
+                    }
                 }
             }
             lastClick = now;
         }
+
+        socket.on('move_unit', (data) => {
+            let u = units.find(unit => unit.id === data.id);
+            if(u) {
+                u.target = new THREE.Vector3(data.target.x, data.target.y, data.target.z);
+            }
+        });
 
         function animate() {
             requestAnimationFrame(animate); let time=performance.now(), delta=(time-prevTime)/1000; prevTime=time;

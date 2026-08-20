@@ -18,23 +18,20 @@
         .spawn-node span:first-child { font-size: 32px; font-weight: bold; }
         .spawn-node span:last-child { font-size: 14px; color: #ffd700; margin-top: 4px; font-weight: bold; }
 
-        /* D-Pad Controls - Hidden by default on PC, shown dynamically via JS on mobile touch devices */
-        .dpad { position: absolute; bottom: 25px; width: 340px; height: 340px; display: none; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 12px; z-index: 250; touch-action: none; opacity: 0.65; }
-        #dpad-left { left: 130px; }
-        #dpad-right { right: 25px; }
-        
-        .d-btn { background: rgba(255,255,255,0.12); border: 2px solid rgba(255,255,255,0.25); border-radius: 20px; display: flex; justify-content: center; align-items: center; color: #fff; font-weight: bold; font-size: 42px; cursor: pointer; -webkit-touch-callout: none; }
+        /* Massive 6x D-Pad Controls (Bottom Left) */
+        #dpad { position: absolute; bottom: 20px; left: 20px; width: 300px; height: 300px; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 10px; z-index: 250; touch-action: none; opacity: 0.65; }
+        .d-btn { background: rgba(255,255,255,0.12); border: 2px solid rgba(255,255,255,0.25); border-radius: 16px; display: flex; justify-content: center; align-items: center; color: #fff; font-weight: bold; font-size: 36px; cursor: pointer; }
         .d-btn:active { background: rgba(0,255,204,0.35); }
-        .d-up { grid-column: 2; grid-row: 1; }
-        .d-left { grid-column: 1; grid-row: 2; }
-        .d-right { grid-column: 3; grid-row: 2; }
-        .d-down { grid-column: 2; grid-row: 3; }
-        .d-center { grid-column: 2; grid-row: 2; background: rgba(0,0,0,0.3); font-size: 16px; color: #aaa; border-radius: 50%; display: flex; justify-content: center; align-items: center; }
+        #d-up { grid-column: 2; grid-row: 1; }
+        #d-left { grid-column: 1; grid-row: 2; }
+        #d-right { grid-column: 3; grid-row: 2; }
+        #d-down { grid-column: 2; grid-row: 3; }
+        #d-center { grid-column: 2; grid-row: 2; background: rgba(0,0,0,0.3); font-size: 14px; color: #aaa; border-radius: 50%; }
 
         /* Top Right Info Button & Popout */
         #info-container { position: absolute; top: 20px; right: 20px; z-index: 200; }
         #info-btn { width: 36px; height: 36px; background: rgba(0,0,0,0.7); color: #ffd700; border: 2px solid #ffd700; border-radius: 50%; font-weight: bold; font-size: 20px; display: flex; justify-content: center; align-items: center; cursor: pointer; }
-        #hud { position: absolute; top: 45px; right: 0; color: #fff; background: rgba(0,0,0,.85); padding: 15px; border-radius: 5px; font-size: 12px; line-height: 1.4; width: 300px; display: none; box-shadow: 0 4px 10px rgba(0,0,0,0.5); border: 1px solid #444; }
+        #hud { position: absolute; top: 45px; right: 0; color: #fff; background: rgba(0,0,0,.85); padding: 15px; border-radius: 5px; font-size: 12px; line-height: 1.4; width: 260px; display: none; box-shadow: 0 4px 10px rgba(0,0,0,0.5); border: 1px solid #444; }
         #info-container:hover #hud, #info-container:active #hud { display: block; }
 
         /* Matchmaking Status Overlay */
@@ -69,39 +66,23 @@
         </div>
     </div>
 
-    <!-- D-Pad Controls on BOTTOM LEFT (Mobile Only) -->
-    <div id="dpad-left" class="dpad">
-        <div class="d-up d-btn" ontouchstart="handleTouch(event, 'KeyW', true)" ontouchend="handleTouch(event, 'KeyW', false)">▲</div>
-        <div class="d-left d-btn" ontouchstart="handleTouch(event, 'KeyA', true)" ontouchend="handleTouch(event, 'KeyA', false)">◀</div>
-        <div class="d-center d-btn">MOVE</div>
-        <div class="d-right d-btn" ontouchstart="handleTouch(event, 'KeyD', true)" ontouchend="handleTouch(event, 'KeyD', false)">▶</div>
-        <div class="d-down d-btn" ontouchstart="handleTouch(event, 'KeyS', true)" ontouchend="handleTouch(event, 'KeyS', false)">▼</div>
-    </div>
-
-    <!-- D-Pad Controls on BOTTOM RIGHT (Mobile Only) -->
-    <div id="dpad-right" class="dpad">
-        <div class="d-up d-btn" ontouchstart="handleTouch(event, 'KeyW', true)" ontouchend="handleTouch(event, 'KeyW', false)">▲</div>
-        <div class="d-left d-btn" ontouchstart="handleTouch(event, 'KeyA', true)" ontouchend="handleTouch(event, 'KeyA', false)">◀</div>
-        <div class="d-center d-btn">MOVE</div>
-        <div class="d-right d-btn" ontouchstart="handleTouch(event, 'KeyD', true)" ontouchend="handleTouch(event, 'KeyD', false)">▶</div>
-        <div class="d-down d-btn" ontouchstart="handleTouch(event, 'KeyS', true)" ontouchend="handleTouch(event, 'KeyS', false)">▼</div>
+    <!-- Massive Transparent D-Pad Controls -->
+    <div id="dpad">
+        <div id="d-up" class="d-btn" ontouchstart="keys['KeyW']=true" ontouchend="keys['KeyW']=false" onmousedown="keys['KeyW']=true" onmouseup="keys['KeyW']=false">▲</div>
+        <div id="d-left" class="d-btn" ontouchstart="keys['KeyA']=true" ontouchend="keys['KeyA']=false" onmousedown="keys['KeyA']=true" onmouseup="keys['KeyA']=false">◀</div>
+        <div id="d-center" class="d-btn">MOVE</div>
+        <div id="d-right" class="d-btn" ontouchstart="keys['KeyD']=true" ontouchend="keys['KeyD']=false" onmousedown="keys['KeyD']=true" onmouseup="keys['KeyD']=false">▶</div>
+        <div id="d-down" class="d-btn" ontouchstart="keys['KeyS']=true" ontouchend="keys['KeyS']=false" onmousedown="keys['KeyS']=true" onmouseup="keys['KeyS']=false">▼</div>
     </div>
 
     <div id="info-container">
         <div id="info-btn" onclick="let h=document.getElementById('hud'); h.style.display=h.style.display==='block'?'none':'block';">i</div>
         <div id="hud">
-            <b>ONLINE 1v1 STRATEGY</b> (+15 gold/s)<br><br>
-            <b>📱 MOBILE CONTROLS:</b><br>
-            • <b>Spawn Troops:</b> Tap left sidebar icons<br>
-            • <b>Camera Pan:</b> Use left or right D-Pad (+)<br>
-            • <b>Camera Look:</b> Drag finger across screen<br>
-            • <b>Select/Build:</b> Tap structures or units<br><br>
-            <b>💻 PC CONTROLS:</b><br>
-            • <b>Spawn Troops:</b> Press [1], [2], or [3]<br>
-            • <b>Camera Move:</b> WASD keys<br>
-            • <b>Camera Look:</b> Hold RMB & drag mouse<br>
-            • <b>Select/Move:</b> Left-Click (LMB)<br>
-            • <b>Double-Click:</b> Buy / Upgrade structures
+            <b>MOBILE & PC STRATEGY</b> (+15 gold/s)<br><br>
+            <b>Spawn:</b> Left Sidebar Nodes or [1] Infantry | [2] Tank | [3] Heli<br><br>
+            <b>Select / Build:</b> Tap / Click Structure or Unit<br>
+            <b>Move / Attack:</b> Tap ground or Enemy<br>
+            <b>Camera:</b> Use D-Pad or RMB Drag / Touch Drag
         </div>
     </div>
 
@@ -124,18 +105,6 @@
         let myTeam = 'player';
         let matchStarted = false;
         let currentRoomId = null;
-
-        window.addEventListener('DOMContentLoaded', () => {
-            const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
-            if (isTouchDevice) {
-                document.querySelectorAll('.dpad').forEach(el => el.style.display = 'grid');
-            }
-        });
-
-        function handleTouch(e, key, isPressed) {
-            e.preventDefault(); 
-            keys[key] = isPressed;
-        }
 
         socket.on('waiting_for_opponent', () => {
             document.getElementById('match-status-text').innerText = "WAITING FOR OPPONENT TO CONNECT...";
@@ -258,9 +227,6 @@
                 pitch = Math.max(-1.5, Math.min(1.5, pitch - e.movementY * 0.002)); 
                 camera.quaternion.setFromEuler(new THREE.Euler(pitch, yaw, 0, 'YXZ')); 
             });
-            document.body.addEventListener('mouseup', e => {
-                if(e.button === 2) isRmbDown = false;
-            });
 
             window.addEventListener('touchstart', e => {
                 if(e.touches.length === 1 && e.target.tagName === 'CANVAS') {
@@ -290,6 +256,7 @@
             });
             document.addEventListener('keyup',e=>keys[e.code]=false);
             
+            // Unified pointer/click handler to bypass mobile double-tap zoom
             document.addEventListener('pointerdown', e => {
                 if(e.target.tagName !== 'CANVAS') return;
                 mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
@@ -302,28 +269,10 @@
 
         function triggerSpawn(typ) {
             if(!matchStarted) return;
-            if(gold < COSTS[typ]) return;
-
             let basePt = myTeam === 'player' ? playerSpawnPoint : aiSpawnPoint;
             let offset = new THREE.Vector3((Math.random()-.5)*10, 0, (Math.random()-.5)*10);
             let spawnLoc = basePt.clone().add(offset);
-            
-            gold -= COSTS[typ]; 
-            document.getElementById('gold-val').innerText = gold;
-
-            let unitId = 'u_' + Math.random().toString(36.substr(2, 9));
-
-            if(currentRoomId) {
-                socket.emit('spawn_unit', { 
-                    roomId: currentRoomId, 
-                    id: unitId,
-                    type: typ, 
-                    team: myTeam, 
-                    pos: { x: spawnLoc.x, y: spawnLoc.y, z: spawnLoc.z } 
-                });
-            }
-
-            spU(unitId, typ, myTeam, spawnLoc);
+            spU(typ, myTeam, spawnLoc, true);
         }
 
         function getH(x,z) {
@@ -447,12 +396,18 @@
             o.hp=o.maxHp; upHB(o.hpBar,o.hp,o.maxHp); if(o.hpBarBack)upHB(o.hpBarBack,o.hp,o.maxHp); upCost(o);
         }
 
-        function spU(id, typ, tm, loc) {
+        function spU(typ, tm, loc = null, sendNet = false) {
             if(!matchStarted) return;
+            if(!loc) {
+                if(gold < COSTS[typ]) return;
+                rc.setFromCamera(mouse,camera); let ints=rc.intersectObject(terrainMesh); if(!ints.length)return;
+                let pt=ints[0].point; if(!inP(pt.x,pt.z))return;
+                loc = pt.clone();
+                gold -= COSTS[typ]; document.getElementById('gold-val').innerText=gold;
+                if(sendNet && currentRoomId) socket.emit('spawn_unit', { roomId: currentRoomId, type: typ, team: tm, pos: {x: loc.x, y: loc.y, z: loc.z} });
+            }
 
-            let actualTeam = (tm === myTeam) ? 'player' : 'enemy';
-            let unitMatTexture = (actualTeam === 'player') ? pTex : aTex;
-            
+            let unitMatTexture = (tm === 'player') ? pTex : aTex;
             let g=new THREE.Group(), mat=new THREE.MeshStandardMaterial({map: unitMatTexture}), img=new THREE.Group(); g.add(img);
             let tur=null;
 
@@ -472,7 +427,7 @@
             }
             
             let rR=typ==='infantry'?.75:(typ==='tank'?1.6:1.7);
-            let r=new THREE.Mesh(new THREE.RingGeometry(rR,rR+0.2,16).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:actualTeam==='player'?0x00ffcc:0xff2222,side:2}));
+            let r=new THREE.Mesh(new THREE.RingGeometry(rR,rR+0.2,16).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:tm===myTeam?0x00ffcc:0xff2222,side:2}));
             r.position.y=0.12; r.visible=false; g.add(r);
 
             let weaponRange = typ === 'infantry' ? 18 : (typ === 'tank' ? 22 : 25);
@@ -484,28 +439,15 @@
 
             let hb=new THREE.Mesh(new THREE.BoxGeometry(1.5,1.5,1.5),new THREE.MeshBasicMaterial({visible:false})); g.add(hb);
             let hp=makeHB(1.6,0.3); hp.position.y=typ==='infantry'?1.5:1.3; g.add(hp); 
-            let cb=makeBB("1",'#ffd700'); cb.position.y=typ==='infantry'?2.0:1.8; cb.rotation.y = (actualTeam === 'enemy') ? Math.PI : 0; g.add(cb); 
+            let cb=makeBB("1",'#ffd700'); cb.position.y=typ==='infantry'?2.0:1.8; cb.rotation.y = tm === 'enemy' ? Math.PI : 0; g.add(cb); 
             g.position.copy(loc); scene.add(g);
             
-            let o={
-                id: id,
-                mesh:g, innerMeshGroup:img, tankTurretGroup:tur, turretOT:0, turretTY:0, curTurY:0, 
-                hitbox:hb, ring:r, rangeRing:rangeRing, hpBar:hp, levelBillboard:cb, 
-                type:typ, team:actualTeam, level:1, speed:typ==='helicopter'?12:(typ==='tank'?4:5.5), 
-                target: null, actCD:0, hp:HP_M[typ], maxHp:HP_M[typ]
-            };
+            let o={mesh:g,innerMeshGroup:img,tankTurretGroup:tur,turretOT:0,turretTY:0,curTurY:0,hitbox:hb,ring:r,rangeRing:rangeRing,hpBar:hp,levelBillboard:cb,type:typ,team:tm,level:1,speed:typ==='helicopter'?12:(typ==='tank'?4:5.5),target:null,actCD:0,hp:HP_M[typ],maxHp:HP_M[typ]};
             hb.userData.ref=o; upUnitLevelBillboard(o); units.push(o);
         }
 
         socket.on('spawn_unit', (data) => {
-            spU(data.id, data.type, data.team, new THREE.Vector3(data.pos.x, data.pos.y, data.pos.z));
-        });
-
-        socket.on('move_unit', (data) => {
-            let u = units.find(unit => unit.id === data.id);
-            if(u) {
-                u.target = new THREE.Vector3(data.target.x, data.target.y, data.target.z);
-            }
+            spU(data.type, data.team, new THREE.Vector3(data.pos.x, data.pos.y, data.pos.z));
         });
 
         socket.on('buy_structure', (data) => {
@@ -595,6 +537,7 @@
                 return;
             }
 
+            // Single tap/click vs Double tap/click detection for building/upgrading
             if(now - lastClick < 350) {
                 let uHbs = units.filter(u=>u.team===myTeam).map(u=>u.hitbox), clU = rc.intersectObjects(uHbs);
                 if(clU.length > 0) {
@@ -654,24 +597,13 @@
                     }
                 } else if(tHits.length > 0 && selected) {
                     selected.target = tHits[0].point.clone();
-                    if(currentRoomId) {
-                        socket.emit('move_unit', {
-                            roomId: currentRoomId,
-                            id: selected.id,
-                            target: { x: selected.target.x, y: selected.target.y, z: selected.target.z }
-                        });
-                    }
                 }
             }
             lastClick = now;
         }
 
-        socket.on('move_unit', (data) => {
-            let u = units.find(unit => unit.id === data.id);
-            if(u) {
-                u.target = new THREE.Vector3(data.target.x, data.target.y, data.target.z);
-            }
-        });
+        function onMD(e) { if(e.button===0) handleInteraction('left'); }
+        function onMU(e) {}
 
         function animate() {
             requestAnimationFrame(animate); let time=performance.now(), delta=(time-prevTime)/1000; prevTime=time;

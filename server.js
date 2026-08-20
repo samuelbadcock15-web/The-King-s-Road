@@ -42,8 +42,8 @@ io.on('connection', (socket) => {
             p2: socket.id
         };
 
-        io.to(waitingPlayer.id).emit('assigned_role', { playerIndex: 1, roomId });
-        io.to(socket.id).emit('assigned_role', { playerIndex: 2, roomId });
+        io.to(waitingPlayer.id).emit('assigned_role', { playerIndex: 1, roomId, team: 'player' });
+        io.to(socket.id).emit('assigned_role', { playerIndex: 2, roomId, team: 'enemy' });
 
         io.to(roomId).emit('start_match');
         waitingPlayer = null;
@@ -51,7 +51,7 @@ io.on('connection', (socket) => {
     }
 
     socket.on('spawn_unit', (data) => {
-        socket.to(data.roomId).emit('opponent_spawn', data);
+        socket.to(data.roomId).emit('spawn_unit', data);
     });
 
     socket.on('player_move', (data) => {

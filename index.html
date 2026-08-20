@@ -18,9 +18,11 @@
         .spawn-node span:first-child { font-size: 32px; font-weight: bold; }
         .spawn-node span:last-child { font-size: 14px; color: #ffd700; margin-top: 4px; font-weight: bold; }
 
-        /* Mobile D-Pad Controls (Shown automatically on touch devices) */
-        #dpad-left { position: absolute; bottom: 20px; left: 130px; width: 260px; height: 260px; display: none; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 10px; z-index: 250; touch-action: none; opacity: 0.65; }
-        
+        /* Dual D-Pad Controls (Shown automatically on touch devices) */
+        .dpad { position: absolute; bottom: 25px; width: 280px; height: 280px; display: none; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 10px; z-index: 250; touch-action: none; opacity: 0.65; }
+        #dpad-left { left: 120px; }
+        #dpad-right { right: 25px; }
+
         .d-btn { background: rgba(255,255,255,0.12); border: 2px solid rgba(255,255,255,0.25); border-radius: 16px; display: flex; justify-content: center; align-items: center; color: #fff; font-weight: bold; font-size: 36px; cursor: pointer; -webkit-touch-callout: none; }
         .d-btn:active { background: rgba(0,255,204,0.35); }
         .d-up { grid-column: 2; grid-row: 1; }
@@ -67,8 +69,16 @@
         </div>
     </div>
 
-    <!-- Single D-Pad Controls on BOTTOM LEFT (Mobile Only) -->
-    <div id="dpad-left">
+    <!-- Dual D-Pad Controls on Mobile -->
+    <div id="dpad-left" class="dpad">
+        <div class="d-up d-btn" ontouchstart="handleTouch(event, 'KeyW', true)" ontouchend="handleTouch(event, 'KeyW', false)">▲</div>
+        <div class="d-left d-btn" ontouchstart="handleTouch(event, 'KeyA', true)" ontouchend="handleTouch(event, 'KeyA', false)">◀</div>
+        <div class="d-center d-btn">MOVE</div>
+        <div class="d-right d-btn" ontouchstart="handleTouch(event, 'KeyD', true)" ontouchend="handleTouch(event, 'KeyD', false)">▶</div>
+        <div class="d-down d-btn" ontouchstart="handleTouch(event, 'KeyS', true)" ontouchend="handleTouch(event, 'KeyS', false)">▼</div>
+    </div>
+
+    <div id="dpad-right" class="dpad">
         <div class="d-up d-btn" ontouchstart="handleTouch(event, 'KeyW', true)" ontouchend="handleTouch(event, 'KeyW', false)">▲</div>
         <div class="d-left d-btn" ontouchstart="handleTouch(event, 'KeyA', true)" ontouchend="handleTouch(event, 'KeyA', false)">◀</div>
         <div class="d-center d-btn">MOVE</div>
@@ -82,13 +92,13 @@
             <b>ONLINE 1v1 STRATEGY</b> (+15 gold/s)<br><br>
             <b>📱 MOBILE CONTROLS:</b><br>
             • <b>Spawn Troops:</b> Tap left sidebar icons<br>
-            • <b>Camera Pan:</b> Use bottom-left D-Pad<br>
+            • <b>Camera Pan:</b> Use left or right D-Pad<br>
             • <b>Camera Look:</b> Drag finger across screen<br><br>
             <b>💻 PC CONTROLS:</b><br>
             • <b>Spawn Troops:</b> Press [1], [2], or [3]<br>
             • <b>Camera Move:</b> WASD keys<br>
             • <b>Camera Look:</b> Hold RMB & drag mouse<br>
-            • <b>Select/Move:</b> Left-Click (LMB)
+            • <b>Select & Move Unit:</b> Left-Click unit, then Left-Click ground
         </div>
     </div>
 
@@ -112,11 +122,11 @@
         let matchStarted = false;
         let currentRoomId = null;
 
-        // Force display the D-Pad on mobile/touch screen viewports
+        // Force display both D-Pads on mobile/touch screen devices or smaller viewports
         window.addEventListener('DOMContentLoaded', () => {
             const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (window.innerWidth <= 1024);
             if (isTouchDevice) {
-                document.getElementById('dpad-left').style.display = 'grid';
+                document.querySelectorAll('.dpad').forEach(el => el.style.display = 'grid');
             }
         });
 
@@ -155,6 +165,7 @@
         let units = [], projs = [], expls = [], selected = null, towers = [], towerHitboxes = [], walls = [], wallHitboxes = [];
         let keys = {}, prevTime = performance.now(), velocity = new THREE.Vector3(), pitch = -0.45, yaw = 0;
         let isRmbDown = false, lastClick = 0;
+        let unitIdCounter = 0;
         const wWidth = 120, wDepth = 150, rc = new THREE.Raycaster(), mouse = new THREE.Vector2();
         let pTex, aTex, gold = 200, goldTimer = 0, enemyGold = 200;
         const COSTS = { infantry: 15, tank: 60, helicopter: 95, wall: 50, tower: 100 };
@@ -233,7 +244,7 @@
             
             document.body.addEventListener('contextmenu',e=>e.preventDefault());
             
-            // Global Mouse Handlers to prevent RMB lock
+            // Global Mouse Handlers to prevent RMB camera lock
             window.addEventListener('mousedown', e => {
                 if(e.button === 2) isRmbDown = true;
             });
@@ -293,7 +304,8 @@
             let basePt = myTeam === 'player' ? playerSpawnPoint : aiSpawnPoint;
             let offset = new THREE.Vector3((Math.random()-.5)*10, 0, (Math.random()-.5)*10);
             let spawnLoc = basePt.clone().add(offset);
-            spU(typ, myTeam, spawnLoc, true);
+            let uId = `${socket.id}_${++unitIdCounter}`;
+            spU(typ, myTeam, spawnLoc, uId, true);
         }
 
         function getH(x,z) {
@@ -417,15 +429,17 @@
             o.hp=o.maxHp; upHB(o.hpBar,o.hp,o.maxHp); if(o.hpBarBack)upHB(o.hpBarBack,o.hp,o.maxHp); upCost(o);
         }
 
-        function spU(typ, tm, loc = null, sendNet = false) {
+        function spU(typ, tm, loc = null, uId = null, sendNet = false) {
             if(!matchStarted) return;
+            if(!uId) uId = `${socket.id}_${++unitIdCounter}`;
+
             if(!loc) {
                 if(gold < COSTS[typ]) return;
                 rc.setFromCamera(mouse,camera); let ints=rc.intersectObject(terrainMesh); if(!ints.length)return;
                 let pt=ints[0].point; if(!inP(pt.x,pt.z))return;
                 loc = pt.clone();
                 gold -= COSTS[typ]; document.getElementById('gold-val').innerText=gold;
-                if(sendNet && currentRoomId) socket.emit('spawn_unit', { roomId: currentRoomId, type: typ, team: tm, pos: {x: loc.x, y: loc.y, z: loc.z} });
+                if(sendNet && currentRoomId) socket.emit('spawn_unit', { roomId: currentRoomId, unitId: uId, type: typ, team: tm, pos: {x: loc.x, y: loc.y, z: loc.z} });
             }
 
             let unitMatTexture = (tm === 'player') ? pTex : aTex;
@@ -463,12 +477,21 @@
             let cb=makeBB("1",'#ffd700'); cb.position.y=typ==='infantry'?2.0:1.8; cb.rotation.y = tm === 'enemy' ? Math.PI : 0; g.add(cb); 
             g.position.copy(loc); scene.add(g);
             
-            let o={mesh:g,innerMeshGroup:img,tankTurretGroup:tur,turretOT:0,turretTY:0,curTurY:0,hitbox:hb,ring:r,rangeRing:rangeRing,hpBar:hp,levelBillboard:cb,type:typ,team:tm,level:1,speed:typ==='helicopter'?12:(typ==='tank'?4:5.5),target:null,actCD:0,hp:HP_M[typ],maxHp:HP_M[typ]};
+            // Units start stationary (no auto-marching; players move them manually)
+            let o={id: uId, mesh:g, innerMeshGroup:img, tankTurretGroup:tur, turretOT:0, turretTY:0, curTurY:0, hitbox:hb, ring:r, rangeRing:rangeRing, hpBar:hp, levelBillboard:cb, type:typ, team:tm, level:1, speed:typ==='helicopter'?12:(typ==='tank'?4:5.5), target:null, actCD:0, hp:HP_M[typ], maxHp:HP_M[typ]};
             hb.userData.ref=o; upUnitLevelBillboard(o); units.push(o);
         }
 
         socket.on('spawn_unit', (data) => {
-            spU(data.type, data.team, new THREE.Vector3(data.pos.x, data.pos.y, data.pos.z));
+            if(units.some(u => u.id === data.unitId)) return;
+            spU(data.type, data.team, new THREE.Vector3(data.pos.x, data.pos.y, data.pos.z), data.unitId, false);
+        });
+
+        socket.on('unit_order_move', (data) => {
+            let u = units.find(item => item.id === data.unitId);
+            if(u) {
+                u.target = new THREE.Vector3(data.target.x, data.target.y, data.target.z);
+            }
         });
 
         socket.on('buy_structure', (data) => {
@@ -617,6 +640,9 @@
                     }
                 } else if(tHits.length > 0 && selected) {
                     selected.target = tHits[0].point.clone();
+                    if(currentRoomId) {
+                        socket.emit('unit_order_move', { roomId: currentRoomId, unitId: selected.id, target: {x: selected.target.x, y: selected.target.y, z: selected.target.z} });
+                    }
                 }
             }
             lastClick = now;
@@ -649,7 +675,7 @@
                 let gh=getH(u.mesh.position.x,u.mesh.position.z);
                 let rng = u.type==='infantry'?18:(u.type==='tank'?22:25);
 
-                if(!gameOverActive && u.actCD <= 0) {
+                if(u.team === myTeam && !gameOverActive && u.actCD <= 0) {
                     let targetTeam = u.team === 'player' ? 'enemy' : 'player';
                     let bestTarget = null, bestDist = Infinity;
                     

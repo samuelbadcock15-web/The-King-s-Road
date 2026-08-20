@@ -5,32 +5,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>King's Road - Mobile & PC Strategy Arena</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: sans-serif; user-select: none; -webkit-user-select: none; }
+        body { margin: 0; overflow: hidden; background: #000; font-family: sans-serif; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
         #c { width: 100vw; height: 100vh; display: block; }
         #resources { position: absolute; top: 20px; left: 20px; font-weight: bold; font-size: 18px; background: rgba(0,0,0,.6); padding: 10px 15px; border-radius: 5px; display: flex; gap: 15px; color: #fff; z-index: 100; pointer-events: none; }
         .p-gold { color: #ffd700; }
         .ai-gold { color: #f44; }
         
-        /* Mobile Spawn Sidebar (Middle Left) */
-        #spawn-sidebar { position: absolute; top: 50%; left: 15px; transform: translateY(-50%); display: flex; flex-direction: column; gap: 12px; z-index: 250; }
-        .spawn-node { width: 56px; height: 56px; background: rgba(0,0,0,0.75); border: 2px solid #00ffcc; border-radius: 12px; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #fff; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.5); transition: transform 0.1s, background 0.2s; }
+        /* Enlarged Mobile Spawn Sidebar (Middle Left) */
+        #spawn-sidebar { position: absolute; top: 50%; left: 20px; transform: translateY(-50%); display: flex; flex-direction: column; gap: 20px; z-index: 250; }
+        .spawn-node { width: 90px; height: 90px; background: rgba(0,0,0,0.75); border: 3px solid #00ffcc; border-radius: 18px; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #fff; cursor: pointer; box-shadow: 0 6px 15px rgba(0,0,0,0.6); transition: transform 0.1s, background 0.2s; }
         .spawn-node:active { transform: scale(0.92); background: rgba(0,255,204,0.3); }
-        .spawn-node span:first-child { font-size: 20px; font-weight: bold; }
-        .spawn-node span:last-child { font-size: 10px; color: #ffd700; margin-top: 2px; }
+        .spawn-node span:first-child { font-size: 32px; font-weight: bold; }
+        .spawn-node span:last-child { font-size: 14px; color: #ffd700; margin-top: 4px; font-weight: bold; }
 
-        /* On-Screen D-Pad for Mobile Movement (Bottom Left) */
-        #dpad { position: absolute; bottom: 25px; left: 25px; width: 130px; height: 130px; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 4px; z-index: 250; touch-action: none; opacity: 0.85; }
-        .d-btn { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; display: flex; justify-content: center; align-items: center; color: #fff; font-weight: bold; font-size: 16px; cursor: pointer; }
-        .d-btn:active { background: rgba(0,255,204,0.4); }
+        /* Massive 6x D-Pad Controls (Bottom Left) */
+        #dpad { position: absolute; bottom: 20px; left: 20px; width: 300px; height: 300px; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 10px; z-index: 250; touch-action: none; opacity: 0.65; }
+        .d-btn { background: rgba(255,255,255,0.12); border: 2px solid rgba(255,255,255,0.25); border-radius: 16px; display: flex; justify-content: center; align-items: center; color: #fff; font-weight: bold; font-size: 36px; cursor: pointer; }
+        .d-btn:active { background: rgba(0,255,204,0.35); }
         #d-up { grid-column: 2; grid-row: 1; }
         #d-left { grid-column: 1; grid-row: 2; }
         #d-right { grid-column: 3; grid-row: 2; }
         #d-down { grid-column: 2; grid-row: 3; }
-        #d-center { grid-column: 2; grid-row: 2; background: rgba(0,0,0,0.4); font-size: 10px; color: #aaa; }
+        #d-center { grid-column: 2; grid-row: 2; background: rgba(0,0,0,0.3); font-size: 14px; color: #aaa; border-radius: 50%; }
 
         /* Top Right Info Button & Popout */
         #info-container { position: absolute; top: 20px; right: 20px; z-index: 200; }
-        #info-btn { width: 36px; height: 36px; background: rgba(0,0,0,0.7); color: #ffd700; border: 2px solid #ffd700; border-radius: 50%; font-weight: bold; font-size: 20px; display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        #info-btn { width: 36px; height: 36px; background: rgba(0,0,0,0.7); color: #ffd700; border: 2px solid #ffd700; border-radius: 50%; font-weight: bold; font-size: 20px; display: flex; justify-content: center; align-items: center; cursor: pointer; }
         #hud { position: absolute; top: 45px; right: 0; color: #fff; background: rgba(0,0,0,.85); padding: 15px; border-radius: 5px; font-size: 12px; line-height: 1.4; width: 260px; display: none; box-shadow: 0 4px 10px rgba(0,0,0,0.5); border: 1px solid #444; }
         #info-container:hover #hud, #info-container:active #hud { display: block; }
 
@@ -50,7 +50,7 @@
         <div class="ai-gold">OPPONENT: <span id="ai-gold-val">200</span></div>
     </div>
     
-    <!-- Mobile & Touch Spawn Sidebar -->
+    <!-- Enlarged Mobile Spawn Sidebar -->
     <div id="spawn-sidebar">
         <div class="spawn-node" onclick="triggerSpawn('infantry')">
             <span>🛡️</span>
@@ -66,7 +66,7 @@
         </div>
     </div>
 
-    <!-- On-Screen D-Pad for Mobile Camera Movement -->
+    <!-- Massive Transparent D-Pad Controls -->
     <div id="dpad">
         <div id="d-up" class="d-btn" ontouchstart="keys['KeyW']=true" ontouchend="keys['KeyW']=false" onmousedown="keys['KeyW']=true" onmouseup="keys['KeyW']=false">▲</div>
         <div id="d-left" class="d-btn" ontouchstart="keys['KeyA']=true" ontouchend="keys['KeyA']=false" onmousedown="keys['KeyA']=true" onmouseup="keys['KeyA']=false">◀</div>
@@ -214,7 +214,6 @@
             
             document.body.addEventListener('contextmenu',e=>e.preventDefault());
             
-            // Mouse & Touch Look Drag Support
             let touchStartX = 0, touchStartY = 0;
             document.body.addEventListener('mousedown', e => {
                 if(e.button===2){ isRmbDown = true; rmbMoved = false; }
@@ -229,14 +228,13 @@
                 camera.quaternion.setFromEuler(new THREE.Euler(pitch, yaw, 0, 'YXZ')); 
             });
 
-            // Mobile Touch Screen Drag Support for Camera Look
             window.addEventListener('touchstart', e => {
                 if(e.touches.length === 1 && e.target.tagName === 'CANVAS') {
                     isRmbDown = true; rmbMoved = false;
                     touchStartX = e.touches[0].clientX;
                     touchStartY = e.touches[0].clientY;
                 }
-            });
+            }, {passive: true});
             window.addEventListener('touchmove', e => {
                 if(!isRmbDown || e.touches.length !== 1) return;
                 let dx = e.touches[0].clientX - touchStartX;
@@ -246,7 +244,7 @@
                 yaw -= dx * 0.004;
                 pitch = Math.max(-1.5, Math.min(1.5, pitch - dy * 0.004));
                 camera.quaternion.setFromEuler(new THREE.Euler(pitch, yaw, 0, 'YXZ'));
-            });
+            }, {passive: true});
             window.addEventListener('touchend', e => { isRmbDown = false; });
             
             document.addEventListener('keydown',e=>{ 
@@ -257,14 +255,20 @@
                 if(e.code==='Digit3')triggerSpawn('helicopter');
             });
             document.addEventListener('keyup',e=>keys[e.code]=false);
-            document.addEventListener('mousedown',onMD);
-            document.addEventListener('mouseup',onMU);
+            
+            // Unified pointer/click handler to bypass mobile double-tap zoom
+            document.addEventListener('pointerdown', e => {
+                if(e.target.tagName !== 'CANVAS') return;
+                mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+                handleInteraction(e.button === 2 ? 'right' : 'left');
+            });
+
             window.addEventListener('resize',()=>{camera.aspect=window.innerWidth/window.innerHeight;camera.updateProjectionMatrix();renderer.setSize(window.innerWidth,window.innerHeight);});
         }
 
         function triggerSpawn(typ) {
             if(!matchStarted) return;
-            // Default spawn directly near player base deployment zone when using mobile UI nodes
             let basePt = myTeam === 'player' ? playerSpawnPoint : aiSpawnPoint;
             let offset = new THREE.Vector3((Math.random()-.5)*10, 0, (Math.random()-.5)*10);
             let spawnLoc = basePt.clone().add(offset);
@@ -522,63 +526,68 @@
             } return false;
         }
 
-        function onMD(e) {
-            if(!matchStarted || gameOverActive)return;
-            if(e.button===2){ isRmbDown = true; rmbMoved = false; return; }
-            if(e.button!==0)return;
-            
-            let now=performance.now(); rc.setFromCamera(mouse,camera); let tHits=rc.intersectObject(terrainMesh);
-            if(now-lastClick<250) {
-                let uHbs=units.filter(u=>u.team===myTeam).map(u=>u.hitbox), clU=rc.intersectObjects(uHbs);
-                if(clU.length>0) {
+        function handleInteraction(clickType) {
+            if(!matchStarted || gameOverActive) return;
+            let now = performance.now();
+            rc.setFromCamera(mouse, camera);
+            let tHits = rc.intersectObject(terrainMesh);
+
+            if(clickType === 'right') {
+                if(selected) fire(tHits[0].point);
+                return;
+            }
+
+            // Single tap/click vs Double tap/click detection for building/upgrading
+            if(now - lastClick < 350) {
+                let uHbs = units.filter(u=>u.team===myTeam).map(u=>u.hitbox), clU = rc.intersectObjects(uHbs);
+                if(clU.length > 0) {
                     let u = clU[0].object.parent.userData.ref || clU[0].object.userData.ref;
-                    if(u && u.team===myTeam && u.level<5) {
-                        let nL=u.level+1; 
-                        if(gold>=TR_UP[nL].cost){ 
-                            gold-=TR_UP[nL].cost; document.getElementById('gold-val').innerText=gold; 
-                            u.level++; u.maxHp=HP_M[u.type]*TR_UP[u.level].mH; u.hp=u.maxHp; 
-                            upHB(u.hpBar,u.hp,u.maxHp); upUnitLevelBillboard(u);
+                    if(u && u.team === myTeam && u.level < 5) {
+                        let nL = u.level + 1; 
+                        if(gold >= TR_UP[nL].cost) { 
+                            gold -= TR_UP[nL].cost; document.getElementById('gold-val').innerText = gold; 
+                            u.level++; u.maxHp = HP_M[u.type] * TR_UP[u.level].mH; u.hp = u.maxHp; 
+                            upHB(u.hpBar, u.hp, u.maxHp); upUnitLevelBillboard(u);
                         }
-                        lastClick=now; return;
+                        lastClick = now; return;
                     }
                 }
-                let tH=rc.intersectObjects(towerHitboxes);
-                if(tH.length>0) {
-                    let t=tH[0].object.userData.towerRef;
-                    let cost=COSTS.tower*Math.pow(2,t.purchaseCount);
-                    if(!t.purchased && canTeamBuy(t, myTeam) && gold>=cost) {
-                        gold-=cost; document.getElementById('gold-val').innerText=gold; ownTower(t,myTeam);
+                let tH = rc.intersectObjects(towerHitboxes);
+                if(tH.length > 0) {
+                    let t = tH[0].object.userData.towerRef;
+                    let cost = COSTS.tower * Math.pow(2, t.purchaseCount);
+                    if(!t.purchased && canTeamBuy(t, myTeam) && gold >= cost) {
+                        gold -= cost; document.getElementById('gold-val').innerText = gold; ownTower(t, myTeam);
                         if(currentRoomId) socket.emit('buy_structure', { roomId: currentRoomId, type: 'tower', x: t.x, z: t.z, team: myTeam, purchaseCount: t.purchaseCount });
-                    } else if(t.team===myTeam&&t.level<5&&gold>=T_UP[t.level+1].cost){
-                        gold-=T_UP[t.level+1].cost; document.getElementById('gold-val').innerText=gold; upStruct(t);
+                    } else if(t.team === myTeam && t.level < 5 && gold >= T_UP[t.level+1].cost) {
+                        gold -= T_UP[t.level+1].cost; document.getElementById('gold-val').innerText = gold; upStruct(t);
                         if(currentRoomId) socket.emit('upgrade_structure', { roomId: currentRoomId, type: 'tower', x: t.x, z: t.z });
                     }
-                    lastClick=now; return;
+                    lastClick = now; return;
                 }
-                let wH=rc.intersectObjects(wallHitboxes);
-                if(wH.length>0) {
-                    let w=wH[0].object.userData.wallRef;
-                    let cost=COSTS.wall*Math.pow(2,w.purchaseCount);
-                    if(!w.purchased && canTeamBuy(w, myTeam) && gold>=cost) {
-                        gold-=cost; document.getElementById('gold-val').innerText=gold; ownWall(w,myTeam);
+                let wH = rc.intersectObjects(wallHitboxes);
+                if(wH.length > 0) {
+                    let w = wH[0].object.userData.wallRef;
+                    let cost = COSTS.wall * Math.pow(2, w.purchaseCount);
+                    if(!w.purchased && canTeamBuy(w, myTeam) && gold >= cost) {
+                        gold -= cost; document.getElementById('gold-val').innerText = gold; ownWall(w, myTeam);
                         if(currentRoomId) socket.emit('buy_structure', { roomId: currentRoomId, type: 'wall', x: w.x, z: w.z, rotationY: w.rotationY, team: myTeam, purchaseCount: w.purchaseCount });
-                    } else if(w.team===myTeam) {
-                        if(w.level<4&&gold>=W_UP[w.level+1].cost){ 
-                            gold-=W_UP[w.level+1].cost; document.getElementById('gold-val').innerText=gold; upStruct(w); 
+                    } else if(w.team === myTeam) {
+                        if(w.level < 4 && gold >= W_UP[w.level+1].cost) { 
+                            gold -= W_UP[w.level+1].cost; document.getElementById('gold-val').innerText = gold; upStruct(w); 
                             if(currentRoomId) socket.emit('upgrade_structure', { roomId: currentRoomId, type: 'wall', x: w.x, z: w.z, rotationY: w.rotationY });
-                        }
-                        else if(w.level>=4){ 
-                            w.isOpen=!w.isOpen; w.targetY=w.isOpen?-1.4:1.5; upCost(w); 
+                        } else if(w.level >= 4) { 
+                            w.isOpen = !w.isOpen; w.targetY = w.isOpen ? -1.4 : 1.5; upCost(w); 
                             if(currentRoomId) socket.emit('toggle_gate', { roomId: currentRoomId, x: w.x, z: w.z, rotationY: w.rotationY, isOpen: w.isOpen });
                         }
                     }
-                    lastClick=now; return;
+                    lastClick = now; return;
                 }
             } else {
-                let hbsToTest = units.filter(u=>u.team===myTeam).map(u=>u.hitbox);
-                let hits=rc.intersectObjects(hbsToTest);
-                if(hits.length>0) {
-                    let u=hits[0].object.parent.userData.ref || hits[0].object.userData.ref; 
+                let hbsToTest = units.filter(u=>u.team === myTeam).map(u=>u.hitbox);
+                let hits = rc.intersectObjects(hbsToTest);
+                if(hits.length > 0) {
+                    let u = hits[0].object.parent.userData.ref || hits[0].object.userData.ref; 
                     if(u) {
                         if(selected === u) { selected.ring.visible = false; selected.rangeRing.material.opacity = 0; selected = null; }
                         else {
@@ -586,22 +595,15 @@
                             selected = u; u.ring.visible = true; u.rangeRing.material.opacity = 0.5;
                         }
                     }
-                } else if(tHits.length&&selected) {
-                    selected.target=tHits[0].point.clone();
+                } else if(tHits.length > 0 && selected) {
+                    selected.target = tHits[0].point.clone();
                 }
-            } lastClick=now;
+            }
+            lastClick = now;
         }
 
-        function onMU(e) {
-            if(e.button===2) {
-                isRmbDown = false;
-                if(!rmbMoved) {
-                    let tHits = rc.intersectObject(terrainMesh);
-                    if(tHits.length > 0 && selected) fire(tHits[0].point);
-                }
-                return;
-            }
-        }
+        function onMD(e) { if(e.button===0) handleInteraction('left'); }
+        function onMU(e) {}
 
         function animate() {
             requestAnimationFrame(animate); let time=performance.now(), delta=(time-prevTime)/1000; prevTime=time;

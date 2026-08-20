@@ -227,6 +227,9 @@
                 pitch = Math.max(-1.5, Math.min(1.5, pitch - e.movementY * 0.002)); 
                 camera.quaternion.setFromEuler(new THREE.Euler(pitch, yaw, 0, 'YXZ')); 
             });
+            document.body.addEventListener('mouseup', e => {
+                if(e.button === 2) isRmbDown = false;
+            });
 
             window.addEventListener('touchstart', e => {
                 if(e.touches.length === 1 && e.target.tagName === 'CANVAS') {
@@ -256,7 +259,6 @@
             });
             document.addEventListener('keyup',e=>keys[e.code]=false);
             
-            // Unified pointer/click handler to bypass mobile double-tap zoom
             document.addEventListener('pointerdown', e => {
                 if(e.target.tagName !== 'CANVAS') return;
                 mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
@@ -537,7 +539,6 @@
                 return;
             }
 
-            // Single tap/click vs Double tap/click detection for building/upgrading
             if(now - lastClick < 350) {
                 let uHbs = units.filter(u=>u.team===myTeam).map(u=>u.hitbox), clU = rc.intersectObjects(uHbs);
                 if(clU.length > 0) {
@@ -601,9 +602,6 @@
             }
             lastClick = now;
         }
-
-        function onMD(e) { if(e.button===0) handleInteraction('left'); }
-        function onMU(e) {}
 
         function animate() {
             requestAnimationFrame(animate); let time=performance.now(), delta=(time-prevTime)/1000; prevTime=time;

@@ -542,7 +542,7 @@
                 }
 
                 if(u.type==='tank'&&u.tankTurretGroup){ if(u.turretOT>0){u.turretOT-=delta;u.curTurY=THREE.MathUtils.lerp(u.curTurY,u.turretTY,12*delta);}else{if(u.target!==null)u.curTurY+=2*delta;else u.curTurY=THREE.MathUtils.lerp(u.curTurY,0,4*delta);} u.tankTurretGroup.rotation.y=u.curTurY; }
-                
+
                 if(u.target) {
                     let d3=new THREE.Vector3().subVectors(u.target,u.mesh.position); let dist=new THREE.Vector2(d3.x,d3.z).length();
                     if(dist>.15) {

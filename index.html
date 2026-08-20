@@ -346,7 +346,7 @@
             let cb=makeBB("1",'#ffd700'); cb.position.y=typ==='infantry'?2.0:1.8; cb.rotation.y = tm === 'enemy' ? Math.PI : 0; g.add(cb); 
             g.position.copy(loc); scene.add(g);
             
-            let o={mesh:g,hitbox:hb,ring:r,rangeRing:rangeRing,hpBar:hp,levelBillboard:cb,type:typ,team:tm,level:1,speed:typ==='helicopter'?12:(typ==='tank'?4:5.5),target:null,actCD:0,hp:HP_M[typ],maxHp:HP_M[typ]};
+            let o={mesh:g,innerMeshGroup:img,tankTurretGroup:tur,turretOT:0,turretTY:0,curTurY:0,hitbox:hb,ring:r,rangeRing:rangeRing,hpBar:hp,levelBillboard:cb,type:typ,team:tm,level:1,speed:typ==='helicopter'?12:(typ==='tank'?4:5.5),target:null,actCD:0,hp:HP_M[typ],maxHp:HP_M[typ]};
             hb.userData.ref=o; upUnitLevelBillboard(o); units.push(o);
         }
 
@@ -382,6 +382,7 @@
             if(u.type==='tank') {
                 let sM=new THREE.Mesh(new THREE.SphereGeometry(0.2,4,4),new THREE.MeshBasicMaterial({color:0x222222})); sM.position.copy(orig); scene.add(sM);
                 projs.push({mesh:sM,start:orig.clone(),end:dT.clone(),p:0,dmg:dmgV,team:myTeam,hitWall:bW});
+                u.turretTY=Math.atan2(dT.x-orig.x,dT.z-orig.z)+Math.PI-u.mesh.rotation.y; u.turretOT=1.8;
             } else {
                 let lM=new THREE.Line(new THREE.BufferGeometry().setFromPoints([orig,dT]),new THREE.LineBasicMaterial({color:0xff0055})); scene.add(lM);
                 expls.push({m:lM,t:0.15,type:'laser'}); if(bW)dmg(bW,dmgV); else expDmg(dT,3.5,dmgV,myTeam);
@@ -523,19 +524,25 @@
                         if(!bW) {
                             u.actCD = (u.type === 'tank' ? 2.2 : 0.8) * TR_UP[u.level].mC;
                             if(u.type === 'tank') {
-                                let sM = new THREE.Mesh(new THREE.SphereGeometry(0.2, 4, 4), new THREE.MeshBasicMaterial({color: 0x222222}));
+                                let sM = new THREE.Mesh(new THREE.SphereGeometry(0.2, 4, 4), new THREE.MeshBasicMaterial({color: u.team === 'player' ? 0x222222 : 0x550000}));
                                 sM.position.copy(orig); scene.add(sM);
                                 projs.push({mesh: sM, start: orig.clone(), end: tPt.clone(), p: 0, dmg: dmgV, team: u.team, hitWall: null});
+                                u.turretTY = Math.atan2(tPt.x - orig.x, tPt.z - orig.z) + Math.PI - u.mesh.rotation.y; u.turretOT = 1.8;
                             } else {
-                                let lM = new THREE.Line(new THREE.BufferGeometry().setFromPoints([orig, tPt]), new THREE.LineBasicMaterial({color: 0xff0055}));
+                                let lM = new THREE.Line(new THREE.BufferGeometry().setFromPoints([orig, tPt]), new THREE.LineBasicMaterial({color: u.team === 'player' ? 0xff0055 : 0xff2222}));
                                 scene.add(lM);
                                 expls.push({m: lM, t: 0.15, type: 'laser'});
-                                dmg(bestTarget.obj, dmgV);
+                                if(bestTarget.type === 'unit') dmg(bestTarget.obj, dmgV);
+                                else if(bestTarget.type === 'wall') dmg(bestTarget.obj, dmgV);
+                                else if(bestTarget.type === 'tower') dmg(bestTarget.obj, dmgV);
+                                else if(bestTarget.type === 'base') dmg(bestTarget.obj, dmgV);
                             }
                         }
                     }
                 }
 
+                if(u.type==='tank'&&u.tankTurretGroup){ if(u.turretOT>0){u.turretOT-=delta;u.curTurY=THREE.MathUtils.lerp(u.curTurY,u.turretTY,12*delta);}else{if(u.target!==null)u.curTurY+=2*delta;else u.curTurY=THREE.MathUtils.lerp(u.curTurY,0,4*delta);} u.tankTurretGroup.rotation.y=u.curTurY; }
+                
                 if(u.target) {
                     let d3=new THREE.Vector3().subVectors(u.target,u.mesh.position); let dist=new THREE.Vector2(d3.x,d3.z).length();
                     if(dist>.15) {

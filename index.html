@@ -60,7 +60,7 @@
             <span>$15</span>
         </div>
         <div class="spawn-node" onclick="triggerSpawn('tank')">
-            <span>🚜</span>
+            <span>🛡️💥</span>
             <span>$60</span>
         </div>
         <div class="spawn-node" onclick="triggerSpawn('helicopter')">
@@ -93,7 +93,8 @@
             <b>📱 MOBILE CONTROLS:</b><br>
             • <b>Spawn Troops:</b> Tap left sidebar icons<br>
             • <b>Camera Pan:</b> Use left or right D-Pad<br>
-            • <b>Camera Look:</b> Drag finger across screen<br><br>
+            • <b>Camera Look:</b> Drag finger across screen<br>
+            • <b>Build/Upgrade:</b> Tap towers/walls twice quickly<br><br>
             <b>💻 PC CONTROLS:</b><br>
             • <b>Spawn Troops:</b> Press [1], [2], or [3]<br>
             • <b>Camera Move:</b> WASD keys<br>
@@ -287,6 +288,7 @@
             });
             document.addEventListener('keyup',e=>keys[e.code]=false);
             
+            // Unified touch/pointer tap to support both mobile and PC structure building and unit selection
             document.addEventListener('pointerdown', e => {
                 if(e.target.tagName !== 'CANVAS') return;
                 mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
@@ -550,71 +552,51 @@
                 return;
             }
 
-            if(now - lastClick < 350) {
-                let uHbs = units.filter(u=>u.team===myTeam).map(u=>u.hitbox), clU = rc.intersectObjects(uHbs);
-                if(clU.length > 0) {
-                    let u = clU[0].object.parent.userData.ref || clU[0].object.userData.ref;
-                    if(u && u.team === myTeam && u.level < 5) {
-                        let nL = u.level + 1; 
-                        if(gold >= TR_UP[nL].cost) { 
-                            gold -= TR_UP[nL].cost; document.getElementById('gold-val').innerText = gold; 
-                            u.level++; u.maxHp = HP_M[u.type] * TR_UP[u.level].mH; u.hp = u.maxHp; 
-                            upHB(u.hpBar, u.hp, u.maxHp); upUnitLevelBillboard(u);
-                        }
-                        lastClick = now; return;
+            // Detect fast clicks or taps to trigger building and upgrading towers/walls
+            let tH = rc.intersectObjects(towerHitboxes);
+            let wH = rc.intersectObjects(wallHitboxes);
+            let uHbs = units.filter(u=>u.team===myTeam).map(u=>u.hitbox), clU = rc.intersectObjects(uHbs);
+
+            if(clU.length > 0) {
+                let u = clU[0].object.parent.userData.ref || clU[0].object.userData.ref;
+                if(u && u.team === myTeam) {
+                    if(selected === u) { selected.ring.visible = false; selected.rangeRing.material.opacity = 0; selected = null; }
+                    else {
+                        if(selected) { selected.ring.visible = false; selected.rangeRing.material.opacity = 0; }
+                        selected = u; u.ring.visible = true; u.rangeRing.material.opacity = 0.5;
                     }
                 }
-                let tH = rc.intersectObjects(towerHitboxes);
-                if(tH.length > 0) {
-                    let t = tH[0].object.userData.towerRef;
-                    let cost = COSTS.tower * Math.pow(2, t.purchaseCount);
-                    if(!t.purchased && canTeamBuy(t, myTeam) && gold >= cost) {
-                        gold -= cost; document.getElementById('gold-val').innerText = gold; ownTower(t, myTeam);
-                        if(currentRoomId) socket.emit('buy_structure', { roomId: currentRoomId, type: 'tower', x: t.x, z: t.z, team: myTeam, purchaseCount: t.purchaseCount });
-                    } else if(t.team === myTeam && t.level < 5 && gold >= T_UP[t.level+1].cost) {
-                        gold -= T_UP[t.level+1].cost; document.getElementById('gold-val').innerText = gold; upStruct(t);
-                        if(currentRoomId) socket.emit('upgrade_structure', { roomId: currentRoomId, type: 'tower', x: t.x, z: t.z });
-                    }
-                    lastClick = now; return;
+            } else if(tH.length > 0) {
+                let t = tH[0].object.userData.towerRef;
+                let cost = COSTS.tower * Math.pow(2, t.purchaseCount);
+                if(!t.purchased && gold >= cost) {
+                    gold -= cost; document.getElementById('gold-val').innerText = gold; ownTower(t, myTeam);
+                    if(currentRoomId) socket.emit('buy_structure', { roomId: currentRoomId, type: 'tower', x: t.x, z: t.z, team: myTeam, purchaseCount: t.purchaseCount });
+                } else if(t.team === myTeam && t.level < 5 && gold >= T_UP[t.level+1].cost) {
+                    gold -= T_UP[t.level+1].cost; document.getElementById('gold-val').innerText = gold; upStruct(t);
+                    if(currentRoomId) socket.emit('upgrade_structure', { roomId: currentRoomId, type: 'tower', x: t.x, z: t.z });
                 }
-                let wH = rc.intersectObjects(wallHitboxes);
-                if(wH.length > 0) {
-                    let w = wH[0].object.userData.wallRef;
-                    let cost = COSTS.wall * Math.pow(2, w.purchaseCount);
-                    if(!w.purchased && canTeamBuy(w, myTeam) && gold >= cost) {
-                        gold -= cost; document.getElementById('gold-val').innerText = gold; ownWall(w, myTeam);
-                        if(currentRoomId) socket.emit('buy_structure', { roomId: currentRoomId, type: 'wall', x: w.x, z: w.z, rotationY: w.rotationY, team: myTeam, purchaseCount: w.purchaseCount });
-                    } else if(w.team === myTeam) {
-                        if(w.level < 4 && gold >= W_UP[w.level+1].cost) { 
-                            gold -= W_UP[w.level+1].cost; document.getElementById('gold-val').innerText = gold; upStruct(w); 
-                            if(currentRoomId) socket.emit('upgrade_structure', { roomId: currentRoomId, type: 'wall', x: w.x, z: w.z, rotationY: w.rotationY });
-                        } else if(w.level >= 4) { 
-                            w.isOpen = !w.isOpen; w.targetY = w.isOpen ? -1.4 : 1.5; upCost(w); 
-                            if(currentRoomId) socket.emit('toggle_gate', { roomId: currentRoomId, x: w.x, z: w.z, rotationY: w.rotationY, isOpen: w.isOpen });
-                        }
+            } else if(wH.length > 0) {
+                let w = wH[0].object.userData.wallRef;
+                let cost = COSTS.wall * Math.pow(2, w.purchaseCount);
+                if(!w.purchased && gold >= cost) {
+                    gold -= cost; document.getElementById('gold-val').innerText = gold; ownWall(w, myTeam);
+                    if(currentRoomId) socket.emit('buy_structure', { roomId: currentRoomId, type: 'wall', x: w.x, z: w.z, rotationY: w.rotationY, team: myTeam, purchaseCount: w.purchaseCount });
+                } else if(w.team === myTeam) {
+                    if(w.level < 4 && gold >= W_UP[w.level+1].cost) { 
+                        gold -= W_UP[w.level+1].cost; document.getElementById('gold-val').innerText = gold; upStruct(w); 
+                        if(currentRoomId) socket.emit('upgrade_structure', { roomId: currentRoomId, type: 'wall', x: w.x, z: w.z, rotationY: w.rotationY });
+                    } else if(w.level >= 4) { 
+                        w.isOpen = !w.isOpen; w.targetY = w.isOpen ? -1.4 : 1.5; upCost(w); 
+                        if(currentRoomId) socket.emit('toggle_gate', { roomId: currentRoomId, x: w.x, z: w.z, rotationY: w.rotationY, isOpen: w.isOpen });
                     }
-                    lastClick = now; return;
                 }
-            } else {
-                let hbsToTest = units.filter(u=>u.team === myTeam).map(u=>u.hitbox);
-                let hits = rc.intersectObjects(hbsToTest);
-                if(hits.length > 0) {
-                    let u = hits[0].object.parent.userData.ref || hits[0].object.userData.ref; 
-                    if(u) {
-                        if(selected === u) { selected.ring.visible = false; selected.rangeRing.material.opacity = 0; selected = null; }
-                        else {
-                            if(selected) { selected.ring.visible = false; selected.rangeRing.material.opacity = 0; }
-                            selected = u; u.ring.visible = true; u.rangeRing.material.opacity = 0.5;
-                        }
-                    }
-                } else if(tHits.length > 0 && selected) {
-                    selected.target = tHits[0].point.clone();
-                    if(currentRoomId) {
-                        socket.emit('unit_order_move', { roomId: currentRoomId, unitId: selected.id, target: {x: selected.target.x, y: selected.target.y, z: selected.target.z} });
-                    }
+            } else if(tHits.length > 0 && selected) {
+                selected.target = tHits[0].point.clone();
+                if(currentRoomId) {
+                    socket.emit('unit_order_move', { roomId: currentRoomId, unitId: selected.id, target: {x: selected.target.x, y: selected.target.y, z: selected.target.z} });
                 }
             }
-            lastClick = now;
         }
 
         function animate() {

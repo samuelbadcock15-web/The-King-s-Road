@@ -54,8 +54,22 @@ io.on('connection', (socket) => {
         broadcastPlayerCounts();
     }
 
+    // Relay unit spawns
     socket.on('spawn_unit', (data) => {
         socket.to(data.roomId).emit('spawn_unit', data);
+    });
+
+    // Relay structure purchases and upgrades so both players see them
+    socket.on('buy_structure', (data) => {
+        socket.to(data.roomId).emit('buy_structure', data);
+    });
+
+    socket.on('upgrade_structure', (data) => {
+        socket.to(data.roomId).emit('upgrade_structure', data);
+    });
+
+    socket.on('toggle_gate', (data) => {
+        socket.to(data.roomId).emit('toggle_gate', data);
     });
 
     socket.on('player_move', (data) => {

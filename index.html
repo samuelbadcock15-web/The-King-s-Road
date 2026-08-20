@@ -142,7 +142,7 @@
         });
 
         socket.on('assigned_role', (data) => {
-            myTeam = data.team; // 'player' or 'enemy'
+            myTeam = data.team; 
             currentRoomId = data.roomId;
             
             if (myTeam === 'enemy') {
@@ -311,7 +311,6 @@
             gold -= COSTS[typ]; 
             document.getElementById('gold-val').innerText = gold;
 
-            // CRITICAL FIX: Explicitly emit spawn_unit across the network so the opponent receives it
             if(currentRoomId) {
                 socket.emit('spawn_unit', { 
                     roomId: currentRoomId, 
@@ -321,8 +320,7 @@
                 });
             }
 
-            // Spawn locally on our own screen
-            spU(typ, myTeam, spawnLoc, false);
+            spU(typ, myTeam, spawnLoc);
         }
 
         function getH(x,z) {
@@ -449,8 +447,10 @@
         function spU(typ, tm, loc) {
             if(!matchStarted) return;
 
-            // If unit belongs to local player, display Green (pTex). If opponent, display Red (aTex).
-            let unitMatTexture = (tm === myTeam) ? pTex : aTex;
+            // Determine rendering team relative to local player client
+            let actualTeam = (tm === myTeam) ? 'player' : 'enemy';
+            let unitMatTexture = (actualTeam === 'player') ? pTex : aTex;
+            
             let g=new THREE.Group(), mat=new THREE.MeshStandardMaterial({map: unitMatTexture}), img=new THREE.Group(); g.add(img);
             let tur=null;
 
@@ -470,7 +470,7 @@
             }
             
             let rR=typ==='infantry'?.75:(typ==='tank'?1.6:1.7);
-            let r=new THREE.Mesh(new THREE.RingGeometry(rR,rR+0.2,16).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:tm===myTeam?0x00ffcc:0xff2222,side:2}));
+            let r=new THREE.Mesh(new THREE.RingGeometry(rR,rR+0.2,16).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:actualTeam==='player'?0x00ffcc:0xff2222,side:2}));
             r.position.y=0.12; r.visible=false; g.add(r);
 
             let weaponRange = typ === 'infantry' ? 18 : (typ === 'tank' ? 22 : 25);
@@ -482,10 +482,18 @@
 
             let hb=new THREE.Mesh(new THREE.BoxGeometry(1.5,1.5,1.5),new THREE.MeshBasicMaterial({visible:false})); g.add(hb);
             let hp=makeHB(1.6,0.3); hp.position.y=typ==='infantry'?1.5:1.3; g.add(hp); 
-            let cb=makeBB("1",'#ffd700'); cb.position.y=typ==='infantry'?2.0:1.8; cb.rotation.y = (tm !== myTeam) ? Math.PI : 0; g.add(cb); 
+            let cb=makeBB("1",'#ffd700'); cb.position.y=typ==='infantry'?2.0:1.8; cb.rotation.y = (actualTeam === 'enemy') ? Math.PI : 0; g.add(cb); 
             g.position.copy(loc); scene.add(g);
             
-            let o={mesh:g,innerMeshGroup:img,tankTurretGroup:tur,turretOT:0,turretTY:0,curTurY:0,hitbox:hb,ring:r,rangeRing:rangeRing,hpBar:hp,levelBillboard:cb,type:typ,team:tm,level:1,speed:typ==='helicopter'?12:(typ==='tank'?4:5.5),target:null,actCD:0,hp:HP_M[typ],maxHp:HP_M[typ]};
+            // Set initial automatic advance target toward opponent base so they march forward immediately!
+            let defaultTarget = (actualTeam === 'player') ? aiBase.position.clone() : playerBase.position.clone();
+
+            let o={
+                mesh:g, innerMeshGroup:img, tankTurretGroup:tur, turretOT:0, turretTY:0, curTurY:0, 
+                hitbox:hb, ring:r, rangeRing:rangeRing, hpBar:hp, levelBillboard:cb, 
+                type:typ, team:actualTeam, level:1, speed:typ==='helicopter'?12:(typ==='tank'?4:5.5), 
+                target: defaultTarget, actCD:0, hp:HP_M[typ], maxHp:HP_M[typ]
+            };
             hb.userData.ref=o; upUnitLevelBillboard(o); units.push(o);
         }
 

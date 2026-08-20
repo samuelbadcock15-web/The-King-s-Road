@@ -46,12 +46,26 @@ io.on('connection', (socket) => {
         console.log(`=== MATCH STARTED === Room: ${roomId} | P1: ${p1.id} vs P2: ${p2.id}`);
     }
 
-    // Relay actions securely between players
-    socket.on('spawn_unit', (data) => socket.to(data.roomId).emit('spawn_unit', data));
-    socket.on('unit_order_move', (data) => socket.to(data.roomId).emit('unit_order_move', data));
-    socket.on('buy_structure', (data) => socket.to(data.roomId).emit('buy_structure', data));
-    socket.on('upgrade_structure', (data) => socket.to(data.roomId).emit('upgrade_structure', data));
-    socket.on('toggle_gate', (data) => socket.to(data.roomId).emit('toggle_gate', data));
+    // Direct relay for spawning units between players in the same room
+    socket.on('spawn_unit', (data) => {
+        socket.to(data.roomId).emit('spawn_unit', data);
+    });
+
+    socket.on('unit_order_move', (data) => {
+        socket.to(data.roomId).emit('unit_order_move', data);
+    });
+
+    socket.on('buy_structure', (data) => {
+        socket.to(data.roomId).emit('buy_structure', data);
+    });
+
+    socket.on('upgrade_structure', (data) => {
+        socket.to(data.roomId).emit('upgrade_structure', data);
+    });
+
+    socket.on('toggle_gate', (data) => {
+        socket.to(data.roomId).emit('toggle_gate', data);
+    });
 
     socket.on('disconnect', () => {
         console.log(`<-- Player disconnected: ${socket.id}`);

@@ -18,8 +18,8 @@
         .spawn-node span:first-child { font-size: 32px; font-weight: bold; }
         .spawn-node span:last-child { font-size: 14px; color: #ffd700; margin-top: 4px; font-weight: bold; }
 
-        /* D-Pad Controls - Hidden by default on PC, shown dynamically via JS on mobile touch devices */
-        .dpad { position: absolute; bottom: 25px; width: 340px; height: 340px; display: none; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 12px; z-index: 250; touch-action: none; opacity: 0.65; }
+        /* Massive D-Pad Controls on Both Bottom Left & Bottom Right */
+        .dpad { position: absolute; bottom: 25px; width: 340px; height: 340px; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 12px; z-index: 250; touch-action: none; opacity: 0.65; }
         #dpad-left { left: 130px; }
         #dpad-right { right: 25px; }
         
@@ -69,22 +69,22 @@
         </div>
     </div>
 
-    <!-- D-Pad Controls on BOTTOM LEFT (Mobile Only) -->
+    <!-- D-Pad Controls on BOTTOM LEFT -->
     <div id="dpad-left" class="dpad">
-        <div class="d-up d-btn" ontouchstart="handleTouch(event, 'KeyW', true)" ontouchend="handleTouch(event, 'KeyW', false)">▲</div>
-        <div class="d-left d-btn" ontouchstart="handleTouch(event, 'KeyA', true)" ontouchend="handleTouch(event, 'KeyA', false)">◀</div>
+        <div class="d-up d-btn" ontouchstart="handleTouch(event, 'KeyW', true)" ontouchend="handleTouch(event, 'KeyW', false)" onmousedown="keys['KeyW']=true" onmouseup="keys['KeyW']=false">▲</div>
+        <div class="d-left d-btn" ontouchstart="handleTouch(event, 'KeyA', true)" ontouchend="handleTouch(event, 'KeyA', false)" onmousedown="keys['KeyA']=true" onmouseup="keys['KeyA']=false">◀</div>
         <div class="d-center d-btn">MOVE</div>
-        <div class="d-right d-btn" ontouchstart="handleTouch(event, 'KeyD', true)" ontouchend="handleTouch(event, 'KeyD', false)">▶</div>
-        <div class="d-down d-btn" ontouchstart="handleTouch(event, 'KeyS', true)" ontouchend="handleTouch(event, 'KeyS', false)">▼</div>
+        <div class="d-right d-btn" ontouchstart="handleTouch(event, 'KeyD', true)" ontouchend="handleTouch(event, 'KeyD', false)" onmousedown="keys['KeyD']=true" onmouseup="keys['KeyD']=false">▶</div>
+        <div class="d-down d-btn" ontouchstart="handleTouch(event, 'KeyS', true)" ontouchend="handleTouch(event, 'KeyS', false)" onmousedown="keys['KeyS']=true" onmouseup="keys['KeyS']=false">▼</div>
     </div>
 
-    <!-- D-Pad Controls on BOTTOM RIGHT (Mobile Only) -->
+    <!-- D-Pad Controls on BOTTOM RIGHT -->
     <div id="dpad-right" class="dpad">
-        <div class="d-up d-btn" ontouchstart="handleTouch(event, 'KeyW', true)" ontouchend="handleTouch(event, 'KeyW', false)">▲</div>
-        <div class="d-left d-btn" ontouchstart="handleTouch(event, 'KeyA', true)" ontouchend="handleTouch(event, 'KeyA', false)">◀</div>
+        <div class="d-up d-btn" ontouchstart="handleTouch(event, 'KeyW', true)" ontouchend="handleTouch(event, 'KeyW', false)" onmousedown="keys['KeyW']=true" onmouseup="keys['KeyW']=false">▲</div>
+        <div class="d-left d-btn" ontouchstart="handleTouch(event, 'KeyA', true)" ontouchend="handleTouch(event, 'KeyA', false)" onmousedown="keys['KeyA']=true" onmouseup="keys['KeyA']=false">◀</div>
         <div class="d-center d-btn">MOVE</div>
-        <div class="d-right d-btn" ontouchstart="handleTouch(event, 'KeyD', true)" ontouchend="handleTouch(event, 'KeyD', false)">▶</div>
-        <div class="d-down d-btn" ontouchstart="handleTouch(event, 'KeyS', true)" ontouchend="handleTouch(event, 'KeyS', false)">▼</div>
+        <div class="d-right d-btn" ontouchstart="handleTouch(event, 'KeyD', true)" ontouchend="handleTouch(event, 'KeyD', false)" onmousedown="keys['KeyD']=true" onmouseup="keys['KeyD']=false">▶</div>
+        <div class="d-down d-btn" ontouchstart="handleTouch(event, 'KeyS', true)" ontouchend="handleTouch(event, 'KeyS', false)" onmousedown="keys['KeyS']=true" onmouseup="keys['KeyS']=false">▼</div>
     </div>
 
     <div id="info-container">
@@ -125,15 +125,8 @@
         let matchStarted = false;
         let currentRoomId = null;
 
-        window.addEventListener('DOMContentLoaded', () => {
-            const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
-            if (isTouchDevice) {
-                document.querySelectorAll('.dpad').forEach(el => el.style.display = 'grid');
-            }
-        });
-
         function handleTouch(e, key, isPressed) {
-            e.preventDefault(); 
+            e.preventDefault(); // Prevents default haptic vibration and zooming
             keys[key] = isPressed;
         }
 
@@ -302,25 +295,10 @@
 
         function triggerSpawn(typ) {
             if(!matchStarted) return;
-            if(gold < COSTS[typ]) return;
-
             let basePt = myTeam === 'player' ? playerSpawnPoint : aiSpawnPoint;
             let offset = new THREE.Vector3((Math.random()-.5)*10, 0, (Math.random()-.5)*10);
             let spawnLoc = basePt.clone().add(offset);
-            
-            gold -= COSTS[typ]; 
-            document.getElementById('gold-val').innerText = gold;
-
-            if(currentRoomId) {
-                socket.emit('spawn_unit', { 
-                    roomId: currentRoomId, 
-                    type: typ, 
-                    team: myTeam, 
-                    pos: { x: spawnLoc.x, y: spawnLoc.y, z: spawnLoc.z } 
-                });
-            }
-
-            spU(typ, myTeam, spawnLoc);
+            spU(typ, myTeam, spawnLoc, true);
         }
 
         function getH(x,z) {
@@ -444,13 +422,18 @@
             o.hp=o.maxHp; upHB(o.hpBar,o.hp,o.maxHp); if(o.hpBarBack)upHB(o.hpBarBack,o.hp,o.maxHp); upCost(o);
         }
 
-        function spU(typ, tm, loc) {
+        function spU(typ, tm, loc = null, sendNet = false) {
             if(!matchStarted) return;
+            if(!loc) {
+                if(gold < COSTS[typ]) return;
+                rc.setFromCamera(mouse,camera); let ints=rc.intersectObject(terrainMesh); if(!ints.length)return;
+                let pt=ints[0].point; if(!inP(pt.x,pt.z))return;
+                loc = pt.clone();
+                gold -= COSTS[typ]; document.getElementById('gold-val').innerText=gold;
+                if(sendNet && currentRoomId) socket.emit('spawn_unit', { roomId: currentRoomId, type: typ, team: tm, pos: {x: loc.x, y: loc.y, z: loc.z} });
+            }
 
-            // Determine rendering team relative to local player client
-            let actualTeam = (tm === myTeam) ? 'player' : 'enemy';
-            let unitMatTexture = (actualTeam === 'player') ? pTex : aTex;
-            
+            let unitMatTexture = (tm === 'player') ? pTex : aTex;
             let g=new THREE.Group(), mat=new THREE.MeshStandardMaterial({map: unitMatTexture}), img=new THREE.Group(); g.add(img);
             let tur=null;
 
@@ -470,7 +453,7 @@
             }
             
             let rR=typ==='infantry'?.75:(typ==='tank'?1.6:1.7);
-            let r=new THREE.Mesh(new THREE.RingGeometry(rR,rR+0.2,16).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:actualTeam==='player'?0x00ffcc:0xff2222,side:2}));
+            let r=new THREE.Mesh(new THREE.RingGeometry(rR,rR+0.2,16).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:tm===myTeam?0x00ffcc:0xff2222,side:2}));
             r.position.y=0.12; r.visible=false; g.add(r);
 
             let weaponRange = typ === 'infantry' ? 18 : (typ === 'tank' ? 22 : 25);
@@ -482,18 +465,10 @@
 
             let hb=new THREE.Mesh(new THREE.BoxGeometry(1.5,1.5,1.5),new THREE.MeshBasicMaterial({visible:false})); g.add(hb);
             let hp=makeHB(1.6,0.3); hp.position.y=typ==='infantry'?1.5:1.3; g.add(hp); 
-            let cb=makeBB("1",'#ffd700'); cb.position.y=typ==='infantry'?2.0:1.8; cb.rotation.y = (actualTeam === 'enemy') ? Math.PI : 0; g.add(cb); 
+            let cb=makeBB("1",'#ffd700'); cb.position.y=typ==='infantry'?2.0:1.8; cb.rotation.y = tm === 'enemy' ? Math.PI : 0; g.add(cb); 
             g.position.copy(loc); scene.add(g);
             
-            // Set initial automatic advance target toward opponent base so they march forward immediately!
-            let defaultTarget = (actualTeam === 'player') ? aiBase.position.clone() : playerBase.position.clone();
-
-            let o={
-                mesh:g, innerMeshGroup:img, tankTurretGroup:tur, turretOT:0, turretTY:0, curTurY:0, 
-                hitbox:hb, ring:r, rangeRing:rangeRing, hpBar:hp, levelBillboard:cb, 
-                type:typ, team:actualTeam, level:1, speed:typ==='helicopter'?12:(typ==='tank'?4:5.5), 
-                target: defaultTarget, actCD:0, hp:HP_M[typ], maxHp:HP_M[typ]
-            };
+            let o={mesh:g,innerMeshGroup:img,tankTurretGroup:tur,turretOT:0,turretTY:0,curTurY:0,hitbox:hb,ring:r,rangeRing:rangeRing,hpBar:hp,levelBillboard:cb,type:typ,team:tm,level:1,speed:typ==='helicopter'?12:(typ==='tank'?4:5.5),target:null,actCD:0,hp:HP_M[typ],maxHp:HP_M[typ]};
             hb.userData.ref=o; upUnitLevelBillboard(o); units.push(o);
         }
 

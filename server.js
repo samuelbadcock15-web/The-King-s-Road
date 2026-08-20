@@ -6,6 +6,10 @@ const path = require('path');
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+    },
     pingTimeout: 60000,
     pingInterval: 25000
 });
@@ -29,11 +33,9 @@ io.on('connection', (socket) => {
     console.log('A player connected:', socket.id);
     broadcastPlayerCounts();
 
-    // Push into queue
     waitingPlayers.push(socket);
     socket.emit('waiting_for_opponent');
 
-    // If we have at least 2 players, match them up!
     if (waitingPlayers.length >= 2) {
         const p1 = waitingPlayers.shift();
         const p2 = waitingPlayers.shift();
@@ -80,7 +82,6 @@ io.on('connection', (socket) => {
         totalOnlinePlayers = Math.max(0, totalOnlinePlayers - 1);
         console.log('A player disconnected:', socket.id);
         
-        // Remove from waiting queue if present
         waitingPlayers = waitingPlayers.filter(s => s.id !== socket.id);
 
         for (const roomId in rooms) {

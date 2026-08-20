@@ -18,7 +18,7 @@
         .spawn-node span:first-child { font-size: 32px; font-weight: bold; }
         .spawn-node span:last-child { font-size: 14px; color: #ffd700; margin-top: 4px; font-weight: bold; }
 
-        /* D-Pad Controls - Hidden by default on PC, shown dynamically via JS/CSS on mobile touch devices */
+        /* D-Pad Controls - Hidden by default on PC, shown dynamically via JS on mobile touch devices */
         .dpad { position: absolute; bottom: 25px; width: 340px; height: 340px; display: none; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 12px; z-index: 250; touch-action: none; opacity: 0.65; }
         #dpad-left { left: 130px; }
         #dpad-right { right: 25px; }
@@ -125,7 +125,6 @@
         let matchStarted = false;
         let currentRoomId = null;
 
-        // Auto-detect mobile/touch devices and display the D-Pads automatically
         window.addEventListener('DOMContentLoaded', () => {
             const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
             if (isTouchDevice) {
@@ -143,7 +142,7 @@
         });
 
         socket.on('assigned_role', (data) => {
-            myTeam = data.team; 
+            myTeam = data.team; // 'player' or 'enemy'
             currentRoomId = data.roomId;
             
             if (myTeam === 'enemy') {
@@ -303,6 +302,7 @@
 
         function triggerSpawn(typ) {
             if(!matchStarted) return;
+            // Spawn relative to my team's base deployment zone
             let basePt = myTeam === 'player' ? playerSpawnPoint : aiSpawnPoint;
             let offset = new THREE.Vector3((Math.random()-.5)*10, 0, (Math.random()-.5)*10);
             let spawnLoc = basePt.clone().add(offset);
@@ -315,6 +315,7 @@
             for(let i=0;i<p.count;i++){let d=Math.pow(p.getX(i)-x,2)+Math.pow(p.getZ(i)-z,2);if(d<mD){mD=d;cl=p.getY(i);}} return cl;
         }
         function inP(x,z){
+            // Restrict spawning to your respective base half
             if(myTeam === 'player') {
                 return x>=-60&&x<=-30&&z>=45&&z<=75;
             } else {
@@ -441,6 +442,7 @@
                 if(sendNet && currentRoomId) socket.emit('spawn_unit', { roomId: currentRoomId, type: typ, team: tm, pos: {x: loc.x, y: loc.y, z: loc.z} });
             }
 
+            // Correct team texture mapping: Player 1 gets pTex (green), Player 2 gets aTex (red)
             let unitMatTexture = (tm === 'player') ? pTex : aTex;
             let g=new THREE.Group(), mat=new THREE.MeshStandardMaterial({map: unitMatTexture}), img=new THREE.Group(); g.add(img);
             let tur=null;
@@ -480,8 +482,9 @@
             hb.userData.ref=o; upUnitLevelBillboard(o); units.push(o);
         }
 
+        // Correctly handle incoming enemy/player unit spawns across the network
         socket.on('spawn_unit', (data) => {
-            spU(data.type, data.team, new THREE.Vector3(data.pos.x, data.pos.y, data.pos.z));
+            spU(data.type, data.team, new THREE.Vector3(data.pos.x, data.pos.y, data.pos.z), false);
         });
 
         socket.on('buy_structure', (data) => {

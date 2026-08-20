@@ -15,21 +15,21 @@
         #spawn-sidebar { position: absolute; top: 50%; left: 20px; transform: translateY(-50%); display: flex; flex-direction: column; gap: 20px; z-index: 250; }
         .spawn-node { width: 90px; height: 90px; background: rgba(0,0,0,0.75); border: 3px solid #00ffcc; border-radius: 18px; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #fff; cursor: pointer; box-shadow: 0 6px 15px rgba(0,0,0,0.6); transition: transform 0.1s, background 0.2s; }
         .spawn-node:active { transform: scale(0.92); background: rgba(0,255,204,0.3); }
-        .spawn-node span:first-child { font-size: 32px; font-weight: bold; }
+        .spawn-node span:first-child { font-size: 34px; font-weight: bold; }
         .spawn-node span:last-child { font-size: 14px; color: #ffd700; margin-top: 4px; font-weight: bold; }
 
-        /* Dual D-Pad Controls (Shown automatically on touch devices) */
-        .dpad { position: absolute; bottom: 25px; width: 280px; height: 280px; display: none; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 10px; z-index: 250; touch-action: none; opacity: 0.65; }
-        #dpad-left { left: 120px; }
+        /* Massive Dual D-Pad Controls (Shown automatically on touch devices) */
+        .dpad { position: absolute; bottom: 25px; width: 340px; height: 340px; display: none; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 12px; z-index: 250; touch-action: none; opacity: 0.65; }
+        #dpad-left { left: 125px; }
         #dpad-right { right: 25px; }
 
-        .d-btn { background: rgba(255,255,255,0.12); border: 2px solid rgba(255,255,255,0.25); border-radius: 16px; display: flex; justify-content: center; align-items: center; color: #fff; font-weight: bold; font-size: 36px; cursor: pointer; -webkit-touch-callout: none; }
+        .d-btn { background: rgba(255,255,255,0.12); border: 2px solid rgba(255,255,255,0.25); border-radius: 20px; display: flex; justify-content: center; align-items: center; color: #fff; font-weight: bold; font-size: 42px; cursor: pointer; -webkit-touch-callout: none; }
         .d-btn:active { background: rgba(0,255,204,0.35); }
         .d-up { grid-column: 2; grid-row: 1; }
         .d-left { grid-column: 1; grid-row: 2; }
         .d-right { grid-column: 3; grid-row: 2; }
         .d-down { grid-column: 2; grid-row: 3; }
-        .d-center { grid-column: 2; grid-row: 2; background: rgba(0,0,0,0.3); font-size: 14px; color: #aaa; border-radius: 50%; display: flex; justify-content: center; align-items: center; }
+        .d-center { grid-column: 2; grid-row: 2; background: rgba(0,0,0,0.3); font-size: 16px; color: #aaa; border-radius: 50%; display: flex; justify-content: center; align-items: center; }
 
         /* Top Right Info Button & Popout */
         #info-container { position: absolute; top: 20px; right: 20px; z-index: 200; }
@@ -53,14 +53,14 @@
         <div class="ai-gold">OPPONENT: <span id="ai-gold-val">200</span></div>
     </div>
     
-    <!-- Enlarged Mobile Spawn Sidebar -->
+    <!-- Enlarged Mobile Spawn Sidebar (Man, Tank, Helicopter) -->
     <div id="spawn-sidebar">
         <div class="spawn-node" onclick="triggerSpawn('infantry')">
-            <span>🛡️</span>
+            <span>💂‍♂️</span>
             <span>$15</span>
         </div>
         <div class="spawn-node" onclick="triggerSpawn('tank')">
-            <span>🛡️🛡️</span>
+            <span>🚜</span>
             <span>$60</span>
         </div>
         <div class="spawn-node" onclick="triggerSpawn('helicopter')">
@@ -69,7 +69,7 @@
         </div>
     </div>
 
-    <!-- Dual D-Pad Controls on Mobile -->
+    <!-- Massive Dual D-Pad Controls on Mobile -->
     <div id="dpad-left" class="dpad">
         <div class="d-up d-btn" ontouchstart="handleTouch(event, 'KeyW', true)" ontouchend="handleTouch(event, 'KeyW', false)">▲</div>
         <div class="d-left d-btn" ontouchstart="handleTouch(event, 'KeyA', true)" ontouchend="handleTouch(event, 'KeyA', false)">◀</div>
@@ -309,7 +309,6 @@
             
             spU(typ, myTeam, spawnLoc, uId);
 
-            // SEND OVER NETWORK RELIABLY
             if(currentRoomId) {
                 socket.emit('spawn_unit', { roomId: currentRoomId, unitId: uId, type: typ, team: myTeam, pos: {x: spawnLoc.x, y: spawnLoc.y, z: spawnLoc.z} });
             }
@@ -412,7 +411,7 @@
 
         function spU(typ, tm, loc, uId) {
             if(!matchStarted) return;
-            if(units.some(u => u.id === uId)) return; // Prevent duplicates
+            if(units.some(u => u.id === uId)) return;
 
             let unitMatTexture = (tm === 'player') ? pTex : aTex;
             let g=new THREE.Group(), mat=new THREE.MeshStandardMaterial({map: unitMatTexture}), img=new THREE.Group(); g.add(img);
@@ -454,7 +453,6 @@
         }
 
         socket.on('spawn_unit', (data) => {
-            console.log("--> OPPONENT SPAWNED UNIT:", data);
             spU(data.type, data.team, new THREE.Vector3(data.pos.x, data.pos.y, data.pos.z), data.unitId);
         });
 

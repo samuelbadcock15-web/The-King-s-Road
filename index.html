@@ -122,7 +122,6 @@
         let matchStarted = false;
         let currentRoomId = null;
 
-        // Force display both D-Pads on mobile/touch screen devices or smaller viewports
         window.addEventListener('DOMContentLoaded', () => {
             const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (window.innerWidth <= 1024);
             if (isTouchDevice) {
@@ -244,7 +243,6 @@
             
             document.body.addEventListener('contextmenu',e=>e.preventDefault());
             
-            // Global Mouse Handlers to prevent RMB camera lock
             window.addEventListener('mousedown', e => {
                 if(e.button === 2) isRmbDown = true;
             });
@@ -301,39 +299,26 @@
 
         function triggerSpawn(typ) {
             if(!matchStarted) return;
+            if(gold < COSTS[typ]) return;
+            gold -= COSTS[typ]; document.getElementById('gold-val').innerText = gold;
+
             let basePt = myTeam === 'player' ? playerSpawnPoint : aiSpawnPoint;
             let offset = new THREE.Vector3((Math.random()-.5)*10, 0, (Math.random()-.5)*10);
             let spawnLoc = basePt.clone().add(offset);
             let uId = `${socket.id}_${++unitIdCounter}`;
-            spU(typ, myTeam, spawnLoc, uId, true);
+            
+            spU(typ, myTeam, spawnLoc, uId);
+
+            // SEND OVER NETWORK RELIABLY
+            if(currentRoomId) {
+                socket.emit('spawn_unit', { roomId: currentRoomId, unitId: uId, type: typ, team: myTeam, pos: {x: spawnLoc.x, y: spawnLoc.y, z: spawnLoc.z} });
+            }
         }
 
         function getH(x,z) {
             if(Math.abs(x)>wWidth/2||Math.abs(z)>wDepth/2)return 0;
             let p=terrainGeo.attributes.position, cl=10, mD=Infinity;
             for(let i=0;i<p.count;i++){let d=Math.pow(p.getX(i)-x,2)+Math.pow(p.getZ(i)-z,2);if(d<mD){mD=d;cl=p.getY(i);}} return cl;
-        }
-        function inP(x,z){
-            return x>=-60&&x<=60&&z>=-75&&z<=75;
-        }
-        
-        function hasBaseFullySecured(tm) {
-            let baseCenter = tm === 'player' ? playerSpawnPoint : aiSpawnPoint;
-            let baseWalls = walls.filter(w => w.group.position.distanceTo(baseCenter) <= 35);
-            let baseTowers = towers.filter(t => t.group.position.distanceTo(baseCenter) <= 35);
-            for (let w of baseWalls) { if (!w.purchased || w.team !== tm) return false; }
-            for (let t of baseTowers) { if (!t.purchased || t.team !== tm) return false; }
-            return true;
-        }
-
-        function canTeamBuy(obj, tm) {
-            let baseCenter = tm === 'player' ? playerSpawnPoint : aiSpawnPoint;
-            let isBaseStructure = obj.group.position.distanceTo(baseCenter) <= 35;
-            if (!isBaseStructure && !hasBaseFullySecured(tm)) return false;
-            if (isBaseStructure) return true;
-            for (let item of towers) { if (item.purchased && item.team === tm && obj.group.position.distanceTo(item.group.position) <= 35) return true; }
-            for (let item of walls) { if (item.purchased && item.team === tm && obj.group.position.distanceTo(item.group.position) <= 35) return true; }
-            return false;
         }
 
         function makeHB(w,h,gr=false) {
@@ -425,18 +410,9 @@
             o.hp=o.maxHp; upHB(o.hpBar,o.hp,o.maxHp); if(o.hpBarBack)upHB(o.hpBarBack,o.hp,o.maxHp); upCost(o);
         }
 
-        function spU(typ, tm, loc = null, uId = null, sendNet = false) {
+        function spU(typ, tm, loc, uId) {
             if(!matchStarted) return;
-            if(!uId) uId = `${socket.id}_${++unitIdCounter}`;
-
-            if(!loc) {
-                if(gold < COSTS[typ]) return;
-                rc.setFromCamera(mouse,camera); let ints=rc.intersectObject(terrainMesh); if(!ints.length)return;
-                let pt=ints[0].point; if(!inP(pt.x,pt.z))return;
-                loc = pt.clone();
-                gold -= COSTS[typ]; document.getElementById('gold-val').innerText=gold;
-                if(sendNet && currentRoomId) socket.emit('spawn_unit', { roomId: currentRoomId, unitId: uId, type: typ, team: tm, pos: {x: loc.x, y: loc.y, z: loc.z} });
-            }
+            if(units.some(u => u.id === uId)) return; // Prevent duplicates
 
             let unitMatTexture = (tm === 'player') ? pTex : aTex;
             let g=new THREE.Group(), mat=new THREE.MeshStandardMaterial({map: unitMatTexture}), img=new THREE.Group(); g.add(img);
@@ -478,8 +454,8 @@
         }
 
         socket.on('spawn_unit', (data) => {
-            if(units.some(u => u.id === data.unitId)) return;
-            spU(data.type, data.team, new THREE.Vector3(data.pos.x, data.pos.y, data.pos.z), data.unitId, false);
+            console.log("--> OPPONENT SPAWNED UNIT:", data);
+            spU(data.type, data.team, new THREE.Vector3(data.pos.x, data.pos.y, data.pos.z), data.unitId);
         });
 
         socket.on('unit_order_move', (data) => {

@@ -20,7 +20,7 @@
         #game-over-screen { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,.85); display: none; flex-direction: column; justify-content: center; align-items: center; color: #fff; z-index: 100; font-size: 40px; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.1/socket.io.min.js"></script>
 </head>
 <body>
     <div id="c"></div>
@@ -45,7 +45,7 @@
     <div id="game-over-screen"></div>
 
     <script>
-        const socket = io();
+        const socket = io("https://the-king-s-road.onrender.com");
         let myTeam = 'player';
         let matchStarted = false;
 

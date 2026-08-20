@@ -16,12 +16,12 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-let waitingPlayer = null;
+let waitingPlayers = [];
 const rooms = {};
 let totalOnlinePlayers = 0;
 
 function broadcastPlayerCounts() {
-    io.emit('update_counts', { totalOnline: totalOnlinePlayers, inQueue: waitingPlayer ? 1 : 0 });
+    io.emit('update_counts', { totalOnline: totalOnlinePlayers, inQueue: waitingPlayers.length });
 }
 
 io.on('connection', (socket) => {
@@ -29,24 +29,26 @@ io.on('connection', (socket) => {
     console.log('A player connected:', socket.id);
     broadcastPlayerCounts();
 
-    if (!waitingPlayer) {
-        waitingPlayer = socket;
-        socket.emit('waiting_for_opponent');
-    } else {
+    // Push into queue
+    waitingPlayers.push(socket);
+    socket.emit('waiting_for_opponent');
+
+    // If we have at least 2 players, match them up!
+    if (waitingPlayers.length >= 2) {
+        const p1 = waitingPlayers.shift();
+        const p2 = waitingPlayers.shift();
+
         const roomId = `room_${Math.random().toString(36).substring(2, 9)}`;
-        socket.join(roomId);
-        waitingPlayer.join(roomId);
+        p1.join(roomId);
+        p2.join(roomId);
 
-        rooms[roomId] = {
-            p1: waitingPlayer.id,
-            p2: socket.id
-        };
+        rooms[roomId] = { p1: p1.id, p2: p2.id };
 
-        io.to(waitingPlayer.id).emit('assigned_role', { playerIndex: 1, roomId, team: 'player' });
-        io.to(socket.id).emit('assigned_role', { playerIndex: 2, roomId, team: 'enemy' });
+        io.to(p1.id).emit('assigned_role', { playerIndex: 1, roomId, team: 'player' });
+        io.to(p2.id).emit('assigned_role', { playerIndex: 2, roomId, team: 'enemy' });
 
         io.to(roomId).emit('start_match');
-        waitingPlayer = null;
+        console.log(`Match started in room: ${roomId}`);
         broadcastPlayerCounts();
     }
 
@@ -77,9 +79,10 @@ io.on('connection', (socket) => {
     socket.on('disconnect', () => {
         totalOnlinePlayers = Math.max(0, totalOnlinePlayers - 1);
         console.log('A player disconnected:', socket.id);
-        if (waitingPlayer === socket) {
-            waitingPlayer = null;
-        }
+        
+        // Remove from waiting queue if present
+        waitingPlayers = waitingPlayers.filter(s => s.id !== socket.id);
+
         for (const roomId in rooms) {
             if (rooms[roomId].p1 === socket.id || rooms[roomId].p2 === socket.id) {
                 io.to(roomId).emit('opponent_disconnected');

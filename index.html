@@ -53,7 +53,14 @@
     <div id="game-over-screen"></div>
 
     <script>
-        const socket = io("https://the-king-s-road-1.onrender.com");
+        const socket = io("https://the-king-s-road-1.onrender.com", {
+            transports: ['websocket', 'polling'],
+            secure: true,
+            reconnection: true,
+            reconnectionAttempts: 10,
+            reconnectionDelay: 1000
+        });
+
         let myTeam = 'player';
         let matchStarted = false;
         let currentRoomId = null;
@@ -65,7 +72,7 @@
         socket.on('assigned_role', (data) => {
             myTeam = data.team;
             currentRoomId = data.roomId;
-            document.getElementById('match-status-text').innerText = `CONNECTED AS ${myTeam.toUpperCase()Â}! MATCH STARTING...`;
+            document.getElementById('match-status-text').innerText = `CONNECTED AS ${myTeam.toUpperCase()}! MATCH STARTING...`;
             setTimeout(() => {
                 document.getElementById('match-status-screen').style.display = 'none';
                 matchStarted = true;

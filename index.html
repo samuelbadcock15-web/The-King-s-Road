@@ -70,8 +70,9 @@
         });
 
         socket.on('assigned_role', (data) => {
-            myTeam = data.team;
+            myTeam = data.team; // Explicitly 'player' (P1) or 'enemy' (P2) from server
             currentRoomId = data.roomId;
+            
             document.getElementById('match-status-text').innerText = `CONNECTED AS ${myTeam.toUpperCase()}! MATCH STARTING...`;
             setTimeout(() => {
                 document.getElementById('match-status-screen').style.display = 'none';
@@ -133,8 +134,8 @@
             camera.quaternion.setFromEuler(new THREE.Euler(pitch,yaw,0,'YXZ'));
             renderer = new THREE.WebGLRenderer({antialias:true}); renderer.setSize(window.innerWidth, window.innerHeight);
             document.getElementById('c').appendChild(renderer.domElement);
-            pTex = genTex(['#354a21','#1e2b13','#4d6635']); 
-            aTex = genTex(['#801111','#3b0505','#b32222']);
+            pTex = genTex(['#354a21','#1e2b13','#4d6635']); // Green team texture
+            aTex = genTex(['#801111','#3b0505','#b32222']); // Red team texture
             scene.add(new THREE.AmbientLight(0xffffff,0.65)); let sun = new THREE.DirectionalLight(0xfffaed,0.85); sun.position.set(30,80,20); scene.add(sun);
             let wM = new THREE.Mesh(new THREE.PlaneGeometry(160,100), new THREE.MeshStandardMaterial({color:0xffaa00})); wM.position.set(0,35,-80); scene.add(wM);
             scene.add(makeBanner());
@@ -196,7 +197,14 @@
             let p=terrainGeo.attributes.position, cl=10, mD=Infinity;
             for(let i=0;i<p.count;i++){let d=Math.pow(p.getX(i)-x,2)+Math.pow(p.getZ(i)-z,2);if(d<mD){mD=d;cl=p.getY(i);}} return cl;
         }
-        function inP(x,z){return myTeam==='player' ? (x>=-60&&x<=-30&&z>=45&&z<=75) : (x>=30&&x<=60&&z>=-75&&z<=-45);}
+        function inP(x,z){
+            // Player 1 spawns on green side, Player 2 spawns on red/enemy side
+            if(myTeam === 'player') {
+                return x>=-60&&x<=-30&&z>=45&&z<=75;
+            } else {
+                return x>=30&&x<=60&&z>=-75&&z<=-45;
+            }
+        }
         
         function hasBaseFullySecured(tm) {
             let baseCenter = tm === 'player' ? playerSpawnPoint : aiSpawnPoint;
@@ -318,7 +326,8 @@
                 if(sendNet && currentRoomId) socket.emit('spawn_unit', { roomId: currentRoomId, type: typ, team: tm, pos: {x: loc.x, y: loc.y, z: loc.z} });
             }
 
-            let unitMatTexture = (tm === myTeam) ? pTex : aTex;
+            // Correct team texture mapping: Player 1 gets pTex (green), Player 2 gets aTex (red)
+            let unitMatTexture = (tm === 'player') ? pTex : aTex;
             let g=new THREE.Group(), mat=new THREE.MeshStandardMaterial({map: unitMatTexture}), img=new THREE.Group(); g.add(img);
             let tur=null;
 

@@ -18,15 +18,18 @@
         .spawn-node span:first-child { font-size: 32px; font-weight: bold; }
         .spawn-node span:last-child { font-size: 14px; color: #ffd700; margin-top: 4px; font-weight: bold; }
 
-        /* Massive D-Pad Controls Moved to Bottom Right */
-        #dpad { position: absolute; bottom: 25px; right: 25px; width: 340px; height: 340px; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 12px; z-index: 250; touch-action: none; opacity: 0.65; }
-        .d-btn { background: rgba(255,255,255,0.12); border: 2px solid rgba(255,255,255,0.25); border-radius: 20px; display: flex; justify-content: center; align-items: center; color: #fff; font-weight: bold; font-size: 42px; cursor: pointer; }
+        /* Massive D-Pad Controls on Both Bottom Left & Bottom Right */
+        .dpad { position: absolute; bottom: 25px; width: 340px; height: 340px; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 12px; z-index: 250; touch-action: none; opacity: 0.65; }
+        #dpad-left { left: 130px; }
+        #dpad-right { right: 25px; }
+        
+        .d-btn { background: rgba(255,255,255,0.12); border: 2px solid rgba(255,255,255,0.25); border-radius: 20px; display: flex; justify-content: center; align-items: center; color: #fff; font-weight: bold; font-size: 42px; cursor: pointer; -webkit-touch-callout: none; }
         .d-btn:active { background: rgba(0,255,204,0.35); }
-        #d-up { grid-column: 2; grid-row: 1; }
-        #d-left { grid-column: 1; grid-row: 2; }
-        #d-right { grid-column: 3; grid-row: 2; }
-        #d-down { grid-column: 2; grid-row: 3; }
-        #d-center { grid-column: 2; grid-row: 2; background: rgba(0,0,0,0.3); font-size: 16px; color: #aaa; border-radius: 50%; }
+        .d-up { grid-column: 2; grid-row: 1; }
+        .d-left { grid-column: 1; grid-row: 2; }
+        .d-right { grid-column: 3; grid-row: 2; }
+        .d-down { grid-column: 2; grid-row: 3; }
+        .d-center { grid-column: 2; grid-row: 2; background: rgba(0,0,0,0.3); font-size: 16px; color: #aaa; border-radius: 50%; display: flex; justify-content: center; align-items: center; }
 
         /* Top Right Info Button & Popout */
         #info-container { position: absolute; top: 20px; right: 20px; z-index: 200; }
@@ -66,13 +69,22 @@
         </div>
     </div>
 
-    <!-- Massive Transparent D-Pad Controls (Bottom Right) -->
-    <div id="dpad">
-        <div id="d-up" class="d-btn" ontouchstart="keys['KeyW']=true" ontouchend="keys['KeyW']=false" onmousedown="keys['KeyW']=true" onmouseup="keys['KeyW']=false">▲</div>
-        <div id="d-left" class="d-btn" ontouchstart="keys['KeyA']=true" ontouchend="keys['KeyA']=false" onmousedown="keys['KeyA']=true" onmouseup="keys['KeyA']=false">◀</div>
-        <div id="d-center" class="d-btn">MOVE</div>
-        <div id="d-right" class="d-btn" ontouchstart="keys['KeyD']=true" ontouchend="keys['KeyD']=false" onmousedown="keys['KeyD']=true" onmouseup="keys['KeyD']=false">▶</div>
-        <div id="d-down" class="d-btn" ontouchstart="keys['KeyS']=true" ontouchend="keys['KeyS']=false" onmousedown="keys['KeyS']=true" onmouseup="keys['KeyS']=false">▼</div>
+    <!-- D-Pad Controls on BOTTOM LEFT -->
+    <div id="dpad-left" class="dpad">
+        <div class="d-up d-btn" ontouchstart="handleTouch(event, 'KeyW', true)" ontouchend="handleTouch(event, 'KeyW', false)" onmousedown="keys['KeyW']=true" onmouseup="keys['KeyW']=false">▲</div>
+        <div class="d-left d-btn" ontouchstart="handleTouch(event, 'KeyA', true)" ontouchend="handleTouch(event, 'KeyA', false)" onmousedown="keys['KeyA']=true" onmouseup="keys['KeyA']=false">◀</div>
+        <div class="d-center d-btn">MOVE</div>
+        <div class="d-right d-btn" ontouchstart="handleTouch(event, 'KeyD', true)" ontouchend="handleTouch(event, 'KeyD', false)" onmousedown="keys['KeyD']=true" onmouseup="keys['KeyD']=false">▶</div>
+        <div class="d-down d-btn" ontouchstart="handleTouch(event, 'KeyS', true)" ontouchend="handleTouch(event, 'KeyS', false)" onmousedown="keys['KeyS']=true" onmouseup="keys['KeyS']=false">▼</div>
+    </div>
+
+    <!-- D-Pad Controls on BOTTOM RIGHT -->
+    <div id="dpad-right" class="dpad">
+        <div class="d-up d-btn" ontouchstart="handleTouch(event, 'KeyW', true)" ontouchend="handleTouch(event, 'KeyW', false)" onmousedown="keys['KeyW']=true" onmouseup="keys['KeyW']=false">▲</div>
+        <div class="d-left d-btn" ontouchstart="handleTouch(event, 'KeyA', true)" ontouchend="handleTouch(event, 'KeyA', false)" onmousedown="keys['KeyA']=true" onmouseup="keys['KeyA']=false">◀</div>
+        <div class="d-center d-btn">MOVE</div>
+        <div class="d-right d-btn" ontouchstart="handleTouch(event, 'KeyD', true)" ontouchend="handleTouch(event, 'KeyD', false)" onmousedown="keys['KeyD']=true" onmouseup="keys['KeyD']=false">▶</div>
+        <div class="d-down d-btn" ontouchstart="handleTouch(event, 'KeyS', true)" ontouchend="handleTouch(event, 'KeyS', false)" onmousedown="keys['KeyS']=true" onmouseup="keys['KeyS']=false">▼</div>
     </div>
 
     <div id="info-container">
@@ -80,10 +92,10 @@
         <div id="hud">
             <b>ONLINE 1v1 STRATEGY</b> (+15 gold/s)<br><br>
             <b>📱 MOBILE CONTROLS:</b><br>
-            • <b>Spawn Troops:</b> Tap left sidebar icons (Infantry, Tank, Heli)<br>
-            • <b>Camera Pan:</b> Use bottom-right D-Pad buttons<br>
+            • <b>Spawn Troops:</b> Tap left sidebar icons<br>
+            • <b>Camera Pan:</b> Use left or right D-Pad (+)<br>
             • <b>Camera Look:</b> Drag finger across screen<br>
-            • <b>Select/Build/Move:</b> Tap structures or ground<br><br>
+            • <b>Select/Build:</b> Tap structures or units<br><br>
             <b>💻 PC CONTROLS:</b><br>
             • <b>Spawn Troops:</b> Press [1], [2], or [3]<br>
             • <b>Camera Move:</b> WASD keys<br>
@@ -112,6 +124,11 @@
         let myTeam = 'player';
         let matchStarted = false;
         let currentRoomId = null;
+
+        function handleTouch(e, key, isPressed) {
+            e.preventDefault(); // Prevents default haptic vibration and zooming
+            keys[key] = isPressed;
+        }
 
         socket.on('waiting_for_opponent', () => {
             document.getElementById('match-status-text').innerText = "WAITING FOR OPPONENT TO CONNECT...";

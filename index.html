@@ -18,8 +18,8 @@
         .spawn-node span:first-child { font-size: 32px; font-weight: bold; }
         .spawn-node span:last-child { font-size: 14px; color: #ffd700; margin-top: 4px; font-weight: bold; }
 
-        /* Massive D-Pad Controls on Both Bottom Left & Bottom Right */
-        .dpad { position: absolute; bottom: 25px; width: 340px; height: 340px; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 12px; z-index: 250; touch-action: none; opacity: 0.65; }
+        /* D-Pad Controls - Hidden by default on PC, shown dynamically via JS/CSS on mobile touch devices */
+        .dpad { position: absolute; bottom: 25px; width: 340px; height: 340px; display: none; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 12px; z-index: 250; touch-action: none; opacity: 0.65; }
         #dpad-left { left: 130px; }
         #dpad-right { right: 25px; }
         
@@ -69,22 +69,22 @@
         </div>
     </div>
 
-    <!-- D-Pad Controls on BOTTOM LEFT -->
+    <!-- D-Pad Controls on BOTTOM LEFT (Mobile Only) -->
     <div id="dpad-left" class="dpad">
-        <div class="d-up d-btn" ontouchstart="handleTouch(event, 'KeyW', true)" ontouchend="handleTouch(event, 'KeyW', false)" onmousedown="keys['KeyW']=true" onmouseup="keys['KeyW']=false">▲</div>
-        <div class="d-left d-btn" ontouchstart="handleTouch(event, 'KeyA', true)" ontouchend="handleTouch(event, 'KeyA', false)" onmousedown="keys['KeyA']=true" onmouseup="keys['KeyA']=false">◀</div>
+        <div class="d-up d-btn" ontouchstart="handleTouch(event, 'KeyW', true)" ontouchend="handleTouch(event, 'KeyW', false)">▲</div>
+        <div class="d-left d-btn" ontouchstart="handleTouch(event, 'KeyA', true)" ontouchend="handleTouch(event, 'KeyA', false)">◀</div>
         <div class="d-center d-btn">MOVE</div>
-        <div class="d-right d-btn" ontouchstart="handleTouch(event, 'KeyD', true)" ontouchend="handleTouch(event, 'KeyD', false)" onmousedown="keys['KeyD']=true" onmouseup="keys['KeyD']=false">▶</div>
-        <div class="d-down d-btn" ontouchstart="handleTouch(event, 'KeyS', true)" ontouchend="handleTouch(event, 'KeyS', false)" onmousedown="keys['KeyS']=true" onmouseup="keys['KeyS']=false">▼</div>
+        <div class="d-right d-btn" ontouchstart="handleTouch(event, 'KeyD', true)" ontouchend="handleTouch(event, 'KeyD', false)">▶</div>
+        <div class="d-down d-btn" ontouchstart="handleTouch(event, 'KeyS', true)" ontouchend="handleTouch(event, 'KeyS', false)">▼</div>
     </div>
 
-    <!-- D-Pad Controls on BOTTOM RIGHT -->
+    <!-- D-Pad Controls on BOTTOM RIGHT (Mobile Only) -->
     <div id="dpad-right" class="dpad">
-        <div class="d-up d-btn" ontouchstart="handleTouch(event, 'KeyW', true)" ontouchend="handleTouch(event, 'KeyW', false)" onmousedown="keys['KeyW']=true" onmouseup="keys['KeyW']=false">▲</div>
-        <div class="d-left d-btn" ontouchstart="handleTouch(event, 'KeyA', true)" ontouchend="handleTouch(event, 'KeyA', false)" onmousedown="keys['KeyA']=true" onmouseup="keys['KeyA']=false">◀</div>
+        <div class="d-up d-btn" ontouchstart="handleTouch(event, 'KeyW', true)" ontouchend="handleTouch(event, 'KeyW', false)">▲</div>
+        <div class="d-left d-btn" ontouchstart="handleTouch(event, 'KeyA', true)" ontouchend="handleTouch(event, 'KeyA', false)">◀</div>
         <div class="d-center d-btn">MOVE</div>
-        <div class="d-right d-btn" ontouchstart="handleTouch(event, 'KeyD', true)" ontouchend="handleTouch(event, 'KeyD', false)" onmousedown="keys['KeyD']=true" onmouseup="keys['KeyD']=false">▶</div>
-        <div class="d-down d-btn" ontouchstart="handleTouch(event, 'KeyS', true)" ontouchend="handleTouch(event, 'KeyS', false)" onmousedown="keys['KeyS']=true" onmouseup="keys['KeyS']=false">▼</div>
+        <div class="d-right d-btn" ontouchstart="handleTouch(event, 'KeyD', true)" ontouchend="handleTouch(event, 'KeyD', false)">▶</div>
+        <div class="d-down d-btn" ontouchstart="handleTouch(event, 'KeyS', true)" ontouchend="handleTouch(event, 'KeyS', false)">▼</div>
     </div>
 
     <div id="info-container">
@@ -125,8 +125,16 @@
         let matchStarted = false;
         let currentRoomId = null;
 
+        // Auto-detect mobile/touch devices and display the D-Pads automatically
+        window.addEventListener('DOMContentLoaded', () => {
+            const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+            if (isTouchDevice) {
+                document.querySelectorAll('.dpad').forEach(el => el.style.display = 'grid');
+            }
+        });
+
         function handleTouch(e, key, isPressed) {
-            e.preventDefault(); // Prevents default haptic vibration and zooming
+            e.preventDefault(); 
             keys[key] = isPressed;
         }
 

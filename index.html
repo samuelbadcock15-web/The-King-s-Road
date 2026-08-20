@@ -142,7 +142,7 @@
         });
 
         socket.on('assigned_role', (data) => {
-            myTeam = data.team; // 'player' or 'enemy'
+            myTeam = data.team; // 'player' (P1) or 'enemy' (P2)
             currentRoomId = data.roomId;
             
             if (myTeam === 'enemy') {
@@ -302,7 +302,6 @@
 
         function triggerSpawn(typ) {
             if(!matchStarted) return;
-            // Spawn relative to my team's base deployment zone
             let basePt = myTeam === 'player' ? playerSpawnPoint : aiSpawnPoint;
             let offset = new THREE.Vector3((Math.random()-.5)*10, 0, (Math.random()-.5)*10);
             let spawnLoc = basePt.clone().add(offset);
@@ -315,7 +314,6 @@
             for(let i=0;i<p.count;i++){let d=Math.pow(p.getX(i)-x,2)+Math.pow(p.getZ(i)-z,2);if(d<mD){mD=d;cl=p.getY(i);}} return cl;
         }
         function inP(x,z){
-            // Restrict spawning to your respective base half
             if(myTeam === 'player') {
                 return x>=-60&&x<=-30&&z>=45&&z<=75;
             } else {
@@ -442,8 +440,8 @@
                 if(sendNet && currentRoomId) socket.emit('spawn_unit', { roomId: currentRoomId, type: typ, team: tm, pos: {x: loc.x, y: loc.y, z: loc.z} });
             }
 
-            // Correct team texture mapping: Player 1 gets pTex (green), Player 2 gets aTex (red)
-            let unitMatTexture = (tm === 'player') ? pTex : aTex;
+            // Render Green texture if team matches local client's role, Red texture if opponent
+            let unitMatTexture = (tm === myTeam) ? pTex : aTex;
             let g=new THREE.Group(), mat=new THREE.MeshStandardMaterial({map: unitMatTexture}), img=new THREE.Group(); g.add(img);
             let tur=null;
 
@@ -482,7 +480,6 @@
             hb.userData.ref=o; upUnitLevelBillboard(o); units.push(o);
         }
 
-        // Correctly handle incoming enemy/player unit spawns across the network
         socket.on('spawn_unit', (data) => {
             spU(data.type, data.team, new THREE.Vector3(data.pos.x, data.pos.y, data.pos.z), false);
         });

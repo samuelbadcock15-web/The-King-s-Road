@@ -1,138 +1,223 @@
-const express = require('express');
+server const express = require('express');
+
 const http = require('http');
+
 const { Server } = require('socket.io');
+
 const path = require('path');
 
+
+
 const app = express();
+
 const server = http.createServer(app);
+
 const io = new Server(server, {
-    cors: { origin: "*", methods: ["GET", "POST"] },
+
+    cors: {
+
+        origin: "*",
+
+        methods: ["GET", "POST"]
+
+    },
+
     transports: ['websocket', 'polling'],
+
     pingTimeout: 60000,
+
     pingInterval: 25000
+
 });
+
+
 
 app.use(express.static(path.join(__dirname)));
 
+
+
 app.get('/', (req, res) => {
+
     res.sendFile(path.join(__dirname, 'index.html'));
+
 });
 
-// Initialize 6 fixed lobbies
-const NUM_ROOMS = 6;
-const lobbies = {};
 
-for (let i = 1; i <= NUM_ROOMS; i++) {
-    const id = `room_${i}`;
-    lobbies[id] = {
-        id,
-        name: `Arena ${i}`,
-        status: 'open', // 'open', 'in-progress'
-        players: {}     // socketId -> { role: 'player'|'enemy', ready: boolean }
-    };
-}
 
-function broadcastLobbyState() {
-    const overview = Object.values(lobbies).map(r => ({
-        id: r.id,
-        name: r.name,
-        status: r.status,
-        playerCount: Object.keys(r.players).length,
-        isFull: Object.keys(r.players).length >= 2
-    }));
-    io.emit('lobby_list_update', overview);
-}
+let waitingPlayers = [];
 
-function getPlayerRoom(socketId) {
-    for (const rId in lobbies) {
-        if (lobbies[rId].players[socketId]) return lobbies[rId];
-    }
-    return null;
-}
+const rooms = {};
 
-function leaveCurrentRoom(socket) {
-    const room = getPlayerRoom(socket.id);
-    if (!room) return;
 
-    delete room.players[socket.id];
-    socket.leave(room.id);
-
-    if (room.status === 'in-progress') {
-        io.to(room.id).emit('opponent_disconnected');
-        room.status = 'open';
-        room.players = {};
-    } else {
-        io.to(room.id).emit('room_detail_update', room);
-    }
-    broadcastLobbyState();
-}
 
 io.on('connection', (socket) => {
-    // Send initial lobby list
-    broadcastLobbyState();
 
-    socket.on('join_room', (roomId) => {
-        const room = lobbies[roomId];
-        if (!room) return;
+    console.log(`--> Player connected: ${socket.id}`);
 
-        // Leave any room currently in
-        leaveCurrentRoom(socket);
 
-        const currentCount = Object.keys(room.players).length;
-        if (currentCount >= 2 || room.status !== 'open') {
-            socket.emit('join_error', 'Room is full or currently in-game.');
-            return;
-        }
 
-        const role = currentCount === 0 ? 'player' : 'enemy';
-        room.players[socket.id] = { role, ready: false };
-        socket.join(room.id);
+    waitingPlayers.push(socket);
 
-        socket.emit('joined_room_success', { roomId: room.id, role });
-        io.to(room.id).emit('room_detail_update', room);
-        broadcastLobbyState();
+    socket.emit('waiting_for_opponent');
+
+
+
+    if (waitingPlayers.length >= 2) {
+
+        const p1 = waitingPlayers.shift();
+
+        const p2 = waitingPlayers.shift();
+
+
+
+        const roomId = `room_${Math.random().toString(36).substring(2, 9)}`;
+
+        p1.join(roomId);
+
+        p2.join(roomId);
+
+
+
+        rooms[roomId] = { p1: p1.id, p2: p2.id };
+
+
+
+        io.to(p1.id).emit('assigned_role', { roomId, team: 'player' });
+
+        io.to(p2.id).emit('assigned_role', { roomId, team: 'enemy' });
+
+
+
+        console.log(`=== MATCH STARTED === Room: ${roomId} | P1: ${p1.id} vs P2: ${p2.id}`);
+
+    }
+
+
+
+    // Direct synchronization relays between players in the same room
+
+    socket.on('spawn_unit', (data) => {
+
+        socket.to(data.roomId).emit('spawn_unit', data);
+
     });
 
-    socket.on('toggle_ready', () => {
-        const room = getPlayerRoom(socket.id);
-        if (!room || room.status !== 'open') return;
 
-        const p = room.players[socket.id];
-        if (p) p.ready = !p.ready;
 
-        io.to(room.id).emit('room_detail_update', room);
+    socket.on('unit_order_move', (data) => {
 
-        // Check if both are ready to start
-        const playerIds = Object.keys(room.players);
-        if (playerIds.length === 2 && playerIds.every(id => room.players[id].ready)) {
-            room.status = 'in-progress';
-            playerIds.forEach(id => {
-                io.to(id).emit('assigned_role', {
-                    roomId: room.id,
-                    team: room.players[id].role
-                });
-            });
-            broadcastLobbyState();
-        }
+        socket.to(data.roomId).emit('unit_order_move', data);
+
     });
 
-    socket.on('leave_room', () => {
-        leaveCurrentRoom(socket);
+
+
+    socket.on('buy_structure', (data) => {
+
+        socket.to(data.roomId).emit('buy_structure', data);
+
     });
 
-    // Relay actions
-    socket.on('spawn_unit', (data) => socket.to(data.roomId).emit('spawn_unit', data));
-    socket.on('unit_order_move', (data) => socket.to(data.roomId).emit('unit_order_move', data));
-    socket.on('buy_structure', (data) => socket.to(data.roomId).emit('buy_structure', data));
-    socket.on('upgrade_structure', (data) => socket.to(data.roomId).emit('upgrade_structure', data));
-    socket.on('toggle_gate', (data) => socket.to(data.roomId).emit('toggle_gate', data));
+
+
+    socket.on('upgrade_structure', (data) => {
+
+        socket.to(data.roomId).emit('upgrade_structure', data);
+
+    });
+
+
+
+    socket.on('toggle_gate', (data) => {
+
+        socket.to(data.roomId).emit('toggle_gate', data);
+
+    });
+
+
 
     socket.on('disconnect', () => {
-        leaveCurrentRoom(socket);
+
+        console.log(`<-- Player disconnected: ${socket.id}`);
+
+        waitingPlayers = waitingPlayers.filter(s => s.id !== socket.id);
+
+
+
+        for (const roomId in rooms) {
+
+            if (rooms[roomId].p1 === socket.id || rooms[roomId].p2 === socket.id) {
+
+                io.to(roomId).emit('opponent_disconnected');
+
+                delete rooms[roomId];
+
+            }
+
+        }
+
     });
+
 });
 
+
+
 const PORT = process.env.PORT || 3000;
+
 server.listen(PORT, () => {
+
     console.log(`Server is running smoothly on port ${PORT}`);
+
 });
+
+
+
+package {
+
+
+
+  "name": "kings-road-multiplayer",
+
+
+
+  "version": "1.0.0",
+
+
+
+  "description": "King's Road Real-Time Strategy Game",
+
+
+
+  "main": "server.js",
+
+
+
+  "scripts": {
+
+
+
+    "start": "node server.js"
+
+
+
+  },
+
+
+
+  "dependencies": {
+
+
+
+    "express": "^4.22.2",
+
+
+
+    "socket.io": "^4.8.3"
+
+
+
+  }
+
+
+
+}

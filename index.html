@@ -5,43 +5,183 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>King's Road - Mobile & PC Strategy Arena</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: sans-serif; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background: #000; 
+            font-family: sans-serif; 
+            user-select: none; 
+            -webkit-user-select: none; 
+            touch-action: manipulation; 
+        }
         #c { width: 100vw; height: 100vh; display: block; }
-        #resources { position: absolute; top: 20px; left: 20px; font-weight: bold; font-size: 18px; background: rgba(0,0,0,.6); padding: 10px 15px; border-radius: 5px; display: flex; gap: 15px; color: #fff; z-index: 100; pointer-events: none; }
+        #resources { 
+            position: absolute; 
+            top: 15px; 
+            left: 15px; 
+            font-weight: bold; 
+            font-size: 16px; 
+            background: rgba(0,0,0,.65); 
+            padding: 8px 14px; 
+            border-radius: 8px; 
+            display: flex; 
+            gap: 15px; 
+            color: #fff; 
+            z-index: 100; 
+            pointer-events: none; 
+        }
         .p-gold { color: #ffd700; }
         .ai-gold { color: #f44; }
         
-        /* Enlarged Mobile Spawn Sidebar (Middle Left) */
-        #spawn-sidebar { position: absolute; top: 50%; left: 20px; transform: translateY(-50%); display: flex; flex-direction: column; gap: 20px; z-index: 250; }
-        .spawn-node { width: 90px; height: 90px; background: rgba(0,0,0,0.75); border: 3px solid #00ffcc; border-radius: 18px; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #fff; cursor: pointer; box-shadow: 0 6px 15px rgba(0,0,0,0.6); transition: transform 0.1s, background 0.2s; }
+        /* Responsive Mobile Spawn Sidebar */
+        #spawn-sidebar { 
+            position: absolute; 
+            top: 45%; 
+            left: 15px; 
+            transform: translateY(-50%); 
+            display: flex; 
+            flex-direction: column; 
+            gap: 12px; 
+            z-index: 250; 
+        }
+        .spawn-node { 
+            width: clamp(55px, 14vw, 80px); 
+            height: clamp(55px, 14vw, 80px); 
+            background: rgba(0,0,0,0.8); 
+            border: 2px solid #00ffcc; 
+            border-radius: 14px; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
+            color: #fff; 
+            cursor: pointer; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.6); 
+            transition: transform 0.1s, background 0.2s; 
+        }
         .spawn-node:active { transform: scale(0.92); background: rgba(0,255,204,0.3); }
-        .spawn-node span:first-child { font-size: 34px; font-weight: bold; }
-        .spawn-node span:last-child { font-size: 14px; color: #ffd700; margin-top: 4px; font-weight: bold; }
+        .spawn-node span:first-child { font-size: clamp(20px, 5vw, 30px); font-weight: bold; }
+        .spawn-node span:last-child { font-size: clamp(10px, 2.8vw, 13px); color: #ffd700; margin-top: 2px; font-weight: bold; }
 
-        /* Massive Dual D-Pad Controls (Shown automatically on touch devices) */
-        .dpad { position: absolute; bottom: 25px; width: 340px; height: 340px; display: none; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 12px; z-index: 250; touch-action: none; opacity: 0.65; }
-        #dpad-left { left: 125px; }
-        #dpad-right { right: 25px; }
+        /* Responsive Dual D-Pad Controls for Mobile */
+        .dpad { 
+            position: absolute; 
+            bottom: 15px; 
+            width: clamp(130px, 36vw, 200px); 
+            height: clamp(130px, 36vw, 200px); 
+            display: none; 
+            grid-template-columns: repeat(3, 1fr); 
+            grid-template-rows: repeat(3, 1fr); 
+            gap: 6px; 
+            z-index: 250; 
+            touch-action: none; 
+            opacity: 0.75; 
+        }
+        #dpad-left { left: 15px; }
+        #dpad-right { right: 15px; }
 
-        .d-btn { background: rgba(255,255,255,0.12); border: 2px solid rgba(255,255,255,0.25); border-radius: 20px; display: flex; justify-content: center; align-items: center; color: #fff; font-weight: bold; font-size: 42px; cursor: pointer; -webkit-touch-callout: none; }
-        .d-btn:active { background: rgba(0,255,204,0.35); }
+        .d-btn { 
+            background: rgba(255,255,255,0.15); 
+            border: 2px solid rgba(255,255,255,0.3); 
+            border-radius: 12px; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            color: #fff; 
+            font-weight: bold; 
+            font-size: clamp(20px, 5vw, 32px); 
+            cursor: pointer; 
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none; 
+        }
+        .d-btn:active { background: rgba(0,255,204,0.45); }
         .d-up { grid-column: 2; grid-row: 1; }
         .d-left { grid-column: 1; grid-row: 2; }
         .d-right { grid-column: 3; grid-row: 2; }
         .d-down { grid-column: 2; grid-row: 3; }
-        .d-center { grid-column: 2; grid-row: 2; background: rgba(0,0,0,0.3); font-size: 16px; color: #aaa; border-radius: 50%; display: flex; justify-content: center; align-items: center; }
+        .d-center { 
+            grid-column: 2; 
+            grid-row: 2; 
+            background: rgba(0,0,0,0.4); 
+            font-size: clamp(10px, 2.5vw, 13px); 
+            color: #aaa; 
+            border-radius: 50%; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+        }
 
         /* Top Right Info Button & Popout */
-        #info-container { position: absolute; top: 20px; right: 20px; z-index: 200; }
-        #info-btn { width: 36px; height: 36px; background: rgba(0,0,0,0.7); color: #ffd700; border: 2px solid #ffd700; border-radius: 50%; font-weight: bold; font-size: 20px; display: flex; justify-content: center; align-items: center; cursor: pointer; }
-        #hud { position: absolute; top: 45px; right: 0; color: #fff; background: rgba(0,0,0,.85); padding: 15px; border-radius: 5px; font-size: 12px; line-height: 1.4; width: 300px; display: none; box-shadow: 0 4px 10px rgba(0,0,0,0.5); border: 1px solid #444; }
+        #info-container { position: absolute; top: 15px; right: 15px; z-index: 200; }
+        #info-btn { 
+            width: 36px; 
+            height: 36px; 
+            background: rgba(0,0,0,0.7); 
+            color: #ffd700; 
+            border: 2px solid #ffd700; 
+            border-radius: 50%; 
+            font-weight: bold; 
+            font-size: 18px; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            cursor: pointer; 
+        }
+        #hud { 
+            position: absolute; 
+            top: 45px; 
+            right: 0; 
+            color: #fff; 
+            background: rgba(0,0,0,.9); 
+            padding: 15px; 
+            border-radius: 8px; 
+            font-size: 12px; 
+            line-height: 1.4; 
+            width: min(280px, 80vw); 
+            display: none; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.6); 
+            border: 1px solid #444; 
+        }
         #info-container:hover #hud, #info-container:active #hud { display: block; }
 
         /* Matchmaking Status Overlay */
-        #match-status-screen { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; justify-content: center; align-items: center; color: #fff; z-index: 300; font-size: 26px; text-align: center; padding: 20px; box-sizing: border-box; }
+        #match-status-screen { 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            width: 100vw; 
+            height: 100vh; 
+            background: rgba(0,0,0,0.85); 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
+            color: #fff; 
+            z-index: 300; 
+            font-size: clamp(18px, 4vw, 26px); 
+            text-align: center; 
+            padding: 20px; 
+            box-sizing: border-box; 
+        }
         #match-status-sub { font-size: 14px; color: #aaa; margin-top: 15px; }
 
-        #game-over-screen { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,.85); display: none; flex-direction: column; justify-content: center; align-items: center; color: #fff; z-index: 100; font-size: 36px; text-align: center; }
+        #game-over-screen { 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            width: 100vw; 
+            height: 100vh; 
+            background: rgba(0,0,0,.85); 
+            display: none; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
+            color: #fff; 
+            z-index: 100; 
+            font-size: clamp(24px, 6vw, 36px); 
+            text-align: center; 
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.1/socket.io.min.js"></script>
@@ -53,7 +193,7 @@
         <div class="ai-gold">OPPONENT: <span id="ai-gold-val">200</span></div>
     </div>
     
-    <!-- Enlarged Mobile Spawn Sidebar (Man, Tank, Helicopter) -->
+    <!-- Mobile Spawn Sidebar -->
     <div id="spawn-sidebar">
         <div class="spawn-node" onclick="triggerSpawn('infantry')">
             <span>💂‍♂️</span>
@@ -69,7 +209,7 @@
         </div>
     </div>
 
-    <!-- Massive Dual D-Pad Controls on Mobile -->
+    <!-- Dual D-Pad Controls on Mobile -->
     <div id="dpad-left" class="dpad">
         <div class="d-up d-btn" ontouchstart="handleTouch(event, 'KeyW', true)" ontouchend="handleTouch(event, 'KeyW', false)">▲</div>
         <div class="d-left d-btn" ontouchstart="handleTouch(event, 'KeyA', true)" ontouchend="handleTouch(event, 'KeyA', false)">◀</div>
@@ -96,7 +236,7 @@
             <b>📱 MOBILE CONTROLS:</b><br>
             • <b>Spawn Troops:</b> Tap left sidebar icons<br>
             • <b>Camera Pan:</b> Use left or right D-Pad<br>
-            • <b>Camera Look:</b> Drag finger across screen<br><br>
+            • <b>Camera Look:</b> Drag finger across empty screen space<br><br>
             <b>💻 PC CONTROLS:</b><br>
             • <b>Spawn Troops:</b> Press [1], [2], or [3]<br>
             • <b>Camera Move:</b> WASD keys<br>
@@ -133,7 +273,8 @@
         });
 
         function handleTouch(e, key, isPressed) {
-            e.preventDefault(); 
+            e.stopPropagation();
+            if(e.cancelable) e.preventDefault(); 
             keys[key] = isPressed;
         }
 
@@ -166,7 +307,7 @@
         let scene, camera, renderer, terrainGeo, terrainMesh;
         let units = [], projs = [], expls = [], selected = null, towers = [], towerHitboxes = [], walls = [], wallHitboxes = [];
         let keys = {}, prevTime = performance.now(), velocity = new THREE.Vector3(), pitch = -0.45, yaw = 0;
-        let isRmbDown = false, lastClick = 0;
+        let isRmbDown = false, isTouchingLook = false, lastClick = 0;
         let unitIdCounter = 0;
         const wWidth = 120, wDepth = 150, rc = new THREE.Raycaster(), mouse = new THREE.Vector2();
         let pTex, aTex, gold = 200, goldTimer = 0, enemyGold = 200;
@@ -263,14 +404,18 @@
 
             let touchStartX = 0, touchStartY = 0;
             window.addEventListener('touchstart', e => {
+                if (e.target.closest('.dpad') || e.target.closest('#spawn-sidebar') || e.target.closest('#info-container')) {
+                    return;
+                }
                 if(e.touches.length === 1 && e.target.tagName === 'CANVAS') {
-                    isRmbDown = true;
+                    isTouchingLook = true;
                     touchStartX = e.touches[0].clientX;
                     touchStartY = e.touches[0].clientY;
                 }
-            }, {passive: true});
+            }, {passive: false});
+
             window.addEventListener('touchmove', e => {
-                if(!isRmbDown || e.touches.length !== 1) return;
+                if(!isTouchingLook || e.touches.length !== 1) return;
                 let dx = e.touches[0].clientX - touchStartX;
                 let dy = e.touches[0].clientY - touchStartY;
                 touchStartX = e.touches[0].clientX;
@@ -278,8 +423,11 @@
                 yaw -= dx * 0.004;
                 pitch = Math.max(-1.5, Math.min(1.5, pitch - dy * 0.004));
                 camera.quaternion.setFromEuler(new THREE.Euler(pitch, yaw, 0, 'YXZ'));
-            }, {passive: true});
-            window.addEventListener('touchend', e => { isRmbDown = false; });
+            }, {passive: false});
+
+            window.addEventListener('touchend', e => { 
+                isTouchingLook = false; 
+            });
             
             document.addEventListener('keydown',e=>{ 
                 keys[e.code]=true; 

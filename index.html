@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>King's Road - Mobile & PC Strategy Arena</title>
+    <title>King's Road - Strategy Arena</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: sans-serif; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
         #c { width: 100vw; height: 100vh; display: block; }
@@ -11,19 +11,17 @@
         .p-gold { color: #ffd700; }
         .ai-gold { color: #f44; }
         
-        /* Enlarged Mobile Spawn Sidebar (Middle Left) */
         #spawn-sidebar { position: absolute; top: 50%; left: 20px; transform: translateY(-50%); display: flex; flex-direction: column; gap: 20px; z-index: 250; }
         .spawn-node { width: 90px; height: 90px; background: rgba(0,0,0,0.75); border: 3px solid #00ffcc; border-radius: 18px; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #fff; cursor: pointer; box-shadow: 0 6px 15px rgba(0,0,0,0.6); transition: transform 0.1s, background 0.2s; }
         .spawn-node:active { transform: scale(0.92); background: rgba(0,255,204,0.3); }
         .spawn-node span:first-child { font-size: 34px; font-weight: bold; }
         .spawn-node span:last-child { font-size: 14px; color: #ffd700; margin-top: 4px; font-weight: bold; }
 
-        /* Massive Dual D-Pad Controls (Shown automatically on touch devices) */
         .dpad { position: absolute; bottom: 25px; width: 340px; height: 340px; display: none; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 12px; z-index: 250; touch-action: none; opacity: 0.65; }
         #dpad-left { left: 125px; }
         #dpad-right { right: 25px; }
 
-        .d-btn { background: rgba(255,255,255,0.12); border: 2px solid rgba(255,255,255,0.25); border-radius: 20px; display: flex; justify-content: center; align-items: center; color: #fff; font-weight: bold; font-size: 42px; cursor: pointer; -webkit-touch-callout: none; }
+        .d-btn { background: rgba(255,255,255,0.12); border: 2px solid rgba(255,255,255,0.25); border-radius: 20px; display: flex; justify-content: center; align-items: center; color: #fff; font-weight: bold; font-size: 42px; cursor: pointer; }
         .d-btn:active { background: rgba(0,255,204,0.35); }
         .d-up { grid-column: 2; grid-row: 1; }
         .d-left { grid-column: 1; grid-row: 2; }
@@ -31,15 +29,36 @@
         .d-down { grid-column: 2; grid-row: 3; }
         .d-center { grid-column: 2; grid-row: 2; background: rgba(0,0,0,0.3); font-size: 16px; color: #aaa; border-radius: 50%; display: flex; justify-content: center; align-items: center; }
 
-        /* Top Right Info Button & Popout */
         #info-container { position: absolute; top: 20px; right: 20px; z-index: 200; }
         #info-btn { width: 36px; height: 36px; background: rgba(0,0,0,0.7); color: #ffd700; border: 2px solid #ffd700; border-radius: 50%; font-weight: bold; font-size: 20px; display: flex; justify-content: center; align-items: center; cursor: pointer; }
         #hud { position: absolute; top: 45px; right: 0; color: #fff; background: rgba(0,0,0,.85); padding: 15px; border-radius: 5px; font-size: 12px; line-height: 1.4; width: 300px; display: none; box-shadow: 0 4px 10px rgba(0,0,0,0.5); border: 1px solid #444; }
-        #info-container:hover #hud, #info-container:active #hud { display: block; }
+        #info-container:hover #hud { display: block; }
 
-        /* Matchmaking Status Overlay */
-        #match-status-screen { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; justify-content: center; align-items: center; color: #fff; z-index: 300; font-size: 26px; text-align: center; padding: 20px; box-sizing: border-box; }
-        #match-status-sub { font-size: 14px; color: #aaa; margin-top: 15px; }
+        /* LOBBY MODAL STYLES */
+        #lobby-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: radial-gradient(circle, #1a2233 0%, #0a0d14 100%); z-index: 500; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fff; }
+        .lobby-title { font-size: 32px; font-weight: 800; color: #00ffcc; text-shadow: 0 0 15px rgba(0,255,204,0.4); margin-bottom: 20px; }
+        
+        #room-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; width: 90%; max-width: 850px; }
+        @media (max-width: 768px) { #room-grid { grid-template-columns: repeat(2, 1fr); } }
+
+        .room-card { background: rgba(255,255,255,0.05); border: 2px solid #2a3b50; border-radius: 12px; padding: 15px; text-align: center; cursor: pointer; transition: 0.2s; }
+        .room-card:hover { border-color: #00ffcc; transform: translateY(-3px); }
+        .room-card.in-game { border-color: #555; opacity: 0.6; cursor: not-allowed; }
+        .room-status { font-size: 12px; margin-top: 5px; color: #aaa; }
+        .badge-open { color: #00ffcc; }
+        .badge-live { color: #ff4444; }
+
+        /* ACTIVE ROOM VIEW */
+        #active-room-modal { display: none; background: #121824; border: 2px solid #00ffcc; border-radius: 16px; padding: 25px; width: 90%; max-width: 480px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
+        .slots-container { display: flex; justify-content: space-around; margin: 25px 0; }
+        .slot-box { border: 2px dashed #445566; border-radius: 10px; width: 140px; height: 90px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .slot-box.filled { border-style: solid; border-color: #00ffcc; }
+        .ready-badge { font-size: 13px; font-weight: bold; margin-top: 5px; color: #777; }
+        .ready-badge.is-ready { color: #00ff66; text-shadow: 0 0 8px rgba(0,255,102,0.6); }
+
+        .btn-action { background: #00ffcc; border: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer; color: #000; margin: 5px; }
+        .btn-leave { background: #ff4444; color: #fff; }
+        .btn-ready-active { background: #00ff66; box-shadow: 0 0 12px #00ff66; }
 
         #game-over-screen { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,.85); display: none; flex-direction: column; justify-content: center; align-items: center; color: #fff; z-index: 100; font-size: 36px; text-align: center; }
     </style>
@@ -52,24 +71,38 @@
         <div class="p-gold">GOLD: <span id="gold-val">200</span></div>
         <div class="ai-gold">OPPONENT: <span id="ai-gold-val">200</span></div>
     </div>
-    
-    <!-- Enlarged Mobile Spawn Sidebar (Man, Tank, Helicopter) -->
-    <div id="spawn-sidebar">
-        <div class="spawn-node" onclick="triggerSpawn('infantry')">
-            <span>💂‍♂️</span>
-            <span>$15</span>
-        </div>
-        <div class="spawn-node" onclick="triggerSpawn('tank')">
-            <span>🛡️💥</span>
-            <span>$60</span>
-        </div>
-        <div class="spawn-node" onclick="triggerSpawn('helicopter')">
-            <span>🚁</span>
-            <span>$95</span>
+
+    <!-- 6 LOBBY OVERVIEW OVERLAY -->
+    <div id="lobby-overlay">
+        <div class="lobby-title">KING'S ROAD ARENA LOBBY</div>
+        
+        <!-- ROOM GRID LIST -->
+        <div id="room-grid"></div>
+
+        <!-- INSIDE ROOM CONTROLS -->
+        <div id="active-room-modal">
+            <h2 id="modal-room-name" style="margin-top:0;">Arena 1</h2>
+            <div class="slots-container">
+                <div class="slot-box" id="slot-1">
+                    <span id="slot-1-title">Player 1 (Green)</span>
+                    <span class="ready-badge" id="slot-1-ready">WAITING...</span>
+                </div>
+                <div class="slot-box" id="slot-2">
+                    <span id="slot-2-title">Player 2 (Red)</span>
+                    <span class="ready-badge" id="slot-2-ready">EMPTY</span>
+                </div>
+            </div>
+            <button class="btn-action" id="btn-ready-toggle" onclick="toggleReady()">READY UP</button>
+            <button class="btn-action btn-leave" onclick="leaveRoom()">LEAVE</button>
         </div>
     </div>
+    
+    <div id="spawn-sidebar">
+        <div class="spawn-node" onclick="triggerSpawn('infantry')"><span>💂‍♂️</span><span>$15</span></div>
+        <div class="spawn-node" onclick="triggerSpawn('tank')"><span>🛡️💥</span><span>$60</span></div>
+        <div class="spawn-node" onclick="triggerSpawn('helicopter')"><span>🚁</span><span>$95</span></div>
+    </div>
 
-    <!-- Massive Dual D-Pad Controls on Mobile -->
     <div id="dpad-left" class="dpad">
         <div class="d-up d-btn" ontouchstart="handleTouch(event, 'KeyW', true)" ontouchend="handleTouch(event, 'KeyW', false)">▲</div>
         <div class="d-left d-btn" ontouchstart="handleTouch(event, 'KeyA', true)" ontouchend="handleTouch(event, 'KeyA', false)">◀</div>
@@ -77,7 +110,6 @@
         <div class="d-right d-btn" ontouchstart="handleTouch(event, 'KeyD', true)" ontouchend="handleTouch(event, 'KeyD', false)">▶</div>
         <div class="d-down d-btn" ontouchstart="handleTouch(event, 'KeyS', true)" ontouchend="handleTouch(event, 'KeyS', false)">▼</div>
     </div>
-
     <div id="dpad-right" class="dpad">
         <div class="d-up d-btn" ontouchstart="handleTouch(event, 'KeyW', true)" ontouchend="handleTouch(event, 'KeyW', false)">▲</div>
         <div class="d-left d-btn" ontouchstart="handleTouch(event, 'KeyA', true)" ontouchend="handleTouch(event, 'KeyA', false)">◀</div>
@@ -90,72 +122,102 @@
         <div id="info-btn" onclick="let h=document.getElementById('hud'); h.style.display=h.style.display==='block'?'none':'block';">i</div>
         <div id="hud">
             <b>ONLINE 1v1 STRATEGY</b> (+15 gold/s)<br><br>
-            <b>🏰 TERRITORY & REBUILD RULE:</b><br>
             • Expand outward from your base!<br>
-            • Rebuild destroyed plots inside your claimed sector.<br><br>
-            <b>📱 MOBILE CONTROLS:</b><br>
-            • <b>Spawn Troops:</b> Tap left sidebar icons<br>
-            • <b>Camera Pan:</b> Use left or right D-Pad<br>
-            • <b>Camera Look:</b> Drag finger across screen<br><br>
-            <b>💻 PC CONTROLS:</b><br>
-            • <b>Spawn Troops:</b> Press [1], [2], or [3]<br>
-            • <b>Camera Move:</b> WASD keys<br>
-            • <b>Camera Look:</b> Hold RMB & drag mouse<br>
-            • <b>Select & Move Unit:</b> Left-Click unit, then Left-Click ground
+            • Rebuild destroyed plots inside claimed sectors.<br><br>
+            <b>💻 CONTROLS:</b> WASD to pan, RMB drag to look, Click units to command.
         </div>
-    </div>
-
-    <div id="match-status-screen">
-        <div id="match-status-text">WAITING FOR OPPONENT TO CONNECT...</div>
-        <div id="match-status-sub">Share your link with a friend to start playing!</div>
     </div>
 
     <div id="game-over-screen"></div>
 
     <script>
-        const socket = io("https://the-king-s-road-1.onrender.com", {
-            transports: ['websocket', 'polling'],
-            secure: true,
-            reconnection: true,
-            reconnectionAttempts: 10,
-            reconnectionDelay: 1000
-        });
-
+        const socket = io(); // Connects to origin server
         let myTeam = 'player';
         let matchStarted = false;
         let currentRoomId = null;
 
-        window.addEventListener('DOMContentLoaded', () => {
-            const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (window.innerWidth <= 1024);
-            if (isTouchDevice) {
-                document.querySelectorAll('.dpad').forEach(el => el.style.display = 'grid');
+        // --- LOBBY SOCKET LOGIC ---
+        socket.on('lobby_list_update', (roomList) => {
+            const grid = document.getElementById('room-grid');
+            grid.innerHTML = '';
+            roomList.forEach(r => {
+                const card = document.createElement('div');
+                card.className = `room-card ${r.status === 'in-progress' ? 'in-game' : ''}`;
+                card.innerHTML = `
+                    <div style="font-weight:bold; font-size:18px;">${r.name}</div>
+                    <div class="room-status ${r.status === 'open' ? 'badge-open' : 'badge-live'}">
+                        ${r.status === 'open' ? `WAITING (${r.playerCount}/2)` : '⚔️ IN MATCH'}
+                    </div>
+                `;
+                if (r.status === 'open') {
+                    card.onclick = () => socket.emit('join_room', r.id);
+                }
+                grid.appendChild(card);
+            });
+        });
+
+        socket.on('joined_room_success', (data) => {
+            currentRoomId = data.roomId;
+            myTeam = data.role;
+            document.getElementById('room-grid').style.display = 'none';
+            document.getElementById('active-room-modal').style.display = 'block';
+            document.getElementById('modal-room-name').innerText = `Arena ${currentRoomId.split('_')[1]}`;
+        });
+
+        socket.on('room_detail_update', (room) => {
+            const pIds = Object.keys(room.players);
+            const p1 = pIds.find(id => room.players[id].role === 'player');
+            const p2 = pIds.find(id => room.players[id].role === 'enemy');
+
+            const s1Box = document.getElementById('slot-1');
+            const s1R = document.getElementById('slot-1-ready');
+            if (p1) {
+                s1Box.classList.add('filled');
+                s1R.innerText = room.players[p1].ready ? 'READY' : 'NOT READY';
+                s1R.className = `ready-badge ${room.players[p1].ready ? 'is-ready' : ''}`;
+            } else {
+                s1Box.classList.remove('filled');
+                s1R.innerText = 'WAITING...';
+                s1R.className = 'ready-badge';
+            }
+
+            const s2Box = document.getElementById('slot-2');
+            const s2R = document.getElementById('slot-2-ready');
+            if (p2) {
+                s2Box.classList.add('filled');
+                s2R.innerText = room.players[p2].ready ? 'READY' : 'NOT READY';
+                s2R.className = `ready-badge ${room.players[p2].ready ? 'is-ready' : ''}`;
+            } else {
+                s2Box.classList.remove('filled');
+                s2R.innerText = 'EMPTY';
+                s2R.className = 'ready-badge';
             }
         });
 
-        function handleTouch(e, key, isPressed) {
-            e.preventDefault(); 
-            keys[key] = isPressed;
+        function toggleReady() {
+            socket.emit('toggle_ready');
+            const btn = document.getElementById('btn-ready-toggle');
+            btn.classList.toggle('btn-ready-active');
         }
 
-        socket.on('waiting_for_opponent', () => {
-            document.getElementById('match-status-text').innerText = "WAITING FOR OPPONENT TO CONNECT...";
-        });
+        function leaveRoom() {
+            socket.emit('leave_room');
+            currentRoomId = null;
+            document.getElementById('room-grid').style.display = 'grid';
+            document.getElementById('active-room-modal').style.display = 'none';
+            document.getElementById('btn-ready-toggle').classList.remove('btn-ready-active');
+        }
 
         socket.on('assigned_role', (data) => {
-            myTeam = data.team; 
+            myTeam = data.team;
             currentRoomId = data.roomId;
-            
             if (myTeam === 'enemy') {
                 camera.position.set(50, 38, -95);
-                yaw = Math.PI; 
+                yaw = Math.PI;
                 camera.quaternion.setFromEuler(new THREE.Euler(pitch, yaw, 0, 'YXZ'));
             }
-
-            document.getElementById('match-status-text').innerText = `CONNECTED AS ${myTeam.toUpperCase() === 'PLAYER' ? 'GREEN (PLAYER 1)' : 'RED (PLAYER 2)'}! MATCH STARTING...`;
-            setTimeout(() => {
-                document.getElementById('match-status-screen').style.display = 'none';
-                matchStarted = true;
-            }, 1500);
+            document.getElementById('lobby-overlay').style.display = 'none';
+            matchStarted = true;
         });
 
         socket.on('opponent_disconnected', () => {
@@ -163,17 +225,18 @@
             location.reload();
         });
 
+        // --- THREE.JS GAME ENGINE SETUP ---
         let scene, camera, renderer, terrainGeo, terrainMesh;
         let units = [], projs = [], expls = [], selected = null, towers = [], towerHitboxes = [], walls = [], wallHitboxes = [];
         let keys = {}, prevTime = performance.now(), velocity = new THREE.Vector3(), pitch = -0.45, yaw = 0;
-        let isRmbDown = false, lastClick = 0;
+        let isRmbDown = false;
         let unitIdCounter = 0;
         const wWidth = 120, wDepth = 150, rc = new THREE.Raycaster(), mouse = new THREE.Vector2();
         let pTex, aTex, gold = 200, goldTimer = 0, enemyGold = 200;
         const COSTS = { infantry: 15, tank: 60, helicopter: 95, wall: 50, tower: 100 };
-        const T_UP = {1:{hp:300,dmg:35,cd:1.2,r:0},2:{cost:75,hp:300,dmg:35,cd:1.2,r:15},3:{cost:200,hp:300,dmg:70,cd:.6,r:15},4:{cost:350,hp:600,dmg:70,cd:.6,r:15},5:{cost:500,hp:1200,dmg:70,cd:.6,r:45}};
-        const TR_UP = {1:{mD:1,mC:1,mH:1,r:0},2:{cost:40,mD:1,mC:1,mH:1,r:6},3:{cost:80,mD:2,mC:.5,mH:1,r:6},4:{cost:140,mD:2,mC:.5,mH:2,r:6},5:{cost:220,mD:2,mC:.5,mH:4,r:20}};
-        const W_UP = {1:{hp:400,r:0},2:{cost:75,hp:400,r:20},3:{cost:150,hp:650,r:20},4:{cost:250,hp:1300,r:40}};
+        const T_UP = {1:{hp:300,dmg:35,cd:1.2},2:{cost:75,hp:300,dmg:35,cd:1.2},3:{cost:200,hp:300,dmg:70,cd:.6},4:{cost:350,hp:600,dmg:70,cd:.6},5:{cost:500,hp:1200,dmg:70,cd:.6}};
+        const TR_UP = {1:{mD:1,mC:1},2:{cost:40,mD:1,mC:1},3:{cost:80,mD:2,mC:.5},4:{cost:140,mD:2,mC:.5},5:{cost:220,mD:2,mC:.5}};
+        const W_UP = {1:{hp:400},2:{cost:75,hp:400},3:{cost:150,hp:650},4:{cost:250,hp:1300}};
         const HP_M = { infantry: 40, tank: 250, helicopter: 120, wall: 400, tower: 300, base: 1000 }, DMG = { infantry: 8, tank: 45, helicopter: 25 };
         const aiSpawnPoint = new THREE.Vector3(50, 10, -65), playerSpawnPoint = new THREE.Vector3(-50, 10, 65);
         let playerBase, aiBase, gameOverActive = false;
@@ -184,27 +247,6 @@
             let c = document.createElement('canvas'); c.width = c.height = 128; let ctx = c.getContext('2d'); ctx.fillStyle = cols[0]; ctx.fillRect(0,0,128,128);
             for(let i=1;i<cols.length;i++){ ctx.fillStyle=cols[i]; for(let j=0;j<10;j++) ctx.fillRect(Math.random()*128,Math.random()*128,20,20); }
             let t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t;
-        }
-
-        function makeBanner() {
-            let canvas = document.createElement('canvas'); canvas.width = 1024; canvas.height = 512;
-            let ctx = canvas.getContext('2d');
-            ctx.fillStyle = '#0f111a'; ctx.fillRect(0, 0, 1024, 512);
-            ctx.lineWidth = 16; ctx.strokeStyle = '#00ffcc'; ctx.strokeRect(20, 20, 984, 472);
-            ctx.shadowColor = '#00ffcc'; ctx.shadowBlur = 20;
-            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-            ctx.font = 'bold 64px sans-serif'; ctx.fillStyle = '#ffffff'; ctx.fillText('KINGS ROAD', 512, 160);
-            ctx.font = 'bold 48px sans-serif'; ctx.fillStyle = '#ffd700'; ctx.fillText('ONLINE MULTIPLAYER ARENA', 512, 260);
-            ctx.font = 'bold 36px sans-serif'; ctx.fillStyle = '#ff3366'; ctx.fillText('DEFEND YOUR BASE & CONQUER', 512, 360);
-
-            let texture = new THREE.CanvasTexture(canvas);
-            let m = new THREE.Mesh(
-                new THREE.PlaneGeometry(120, 60), 
-                new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: 2 })
-            );
-            m.position.set(-79.5, 40, 0);
-            m.rotation.y = Math.PI / 2;
-            return m;
         }
 
         function init() {
@@ -218,20 +260,11 @@
             aTex = genTex(['#801111','#3b0505','#b32222']);
             scene.add(new THREE.AmbientLight(0xffffff,0.65)); let sun = new THREE.DirectionalLight(0xfffaed,0.85); sun.position.set(30,80,20); scene.add(sun);
             
-            scene.add(makeBanner());
             let fl = new THREE.Mesh(new THREE.PlaneGeometry(160,160), new THREE.MeshStandardMaterial({color:0x443a33})); fl.rotation.x = -Math.PI/2; scene.add(fl);
-            
             terrainGeo = new THREE.PlaneGeometry(wWidth, wDepth, 10, 10).rotateX(-Math.PI/2);
             let p = terrainGeo.attributes.position; for(let i=0;i<p.count;i++) p.setY(i,10+Math.sin(p.getX(i)*0.15)*0.1);
             terrainGeo.computeVertexNormals(); terrainMesh = new THREE.Mesh(terrainGeo, new THREE.MeshStandardMaterial({color:0xddb36e,flatShading:true})); scene.add(terrainMesh);
             
-            let lMat = new THREE.LineBasicMaterial({color:0x66523f});
-            for(let i=1;i<=3;i++) {
-                scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-wWidth/2+i*30,10.1,-wDepth/2),new THREE.Vector3(-wWidth/2+i*30,10.1,wDepth/2)]),lMat));
-            }
-            for(let j=1;j<=4;j++) {
-                scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-wWidth/2,10.1,-wDepth/2+j*30),new THREE.Vector3(wWidth/2,10.1,-wDepth/2+j*30)]),lMat));
-            }
             for(let i=1;i<=3;i++) for(let j=1;j<=4;j++) makeTower(-wWidth/2+i*30, getH(-wWidth/2+i*30,-wDepth/2+j*30), -wDepth/2+j*30);
             
             let wSet = new Set();
@@ -245,42 +278,14 @@
             aiBase = makeBase(aiSpawnPoint.x, aiSpawnPoint.z, 'enemy');
             
             document.body.addEventListener('contextmenu',e=>e.preventDefault());
-            
-            window.addEventListener('mousedown', e => {
-                if(e.button === 2) isRmbDown = true;
-            });
+            window.addEventListener('mousedown', e => { if(e.button === 2) isRmbDown = true; });
             window.addEventListener('mousemove', e => {
-                mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-                mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+                mouse.x = (e.clientX / window.innerWidth) * 2 - 1; mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
                 if(!isRmbDown) return;
-                yaw -= e.movementX * 0.002; 
-                pitch = Math.max(-1.5, Math.min(1.5, pitch - e.movementY * 0.002)); 
+                yaw -= e.movementX * 0.002; pitch = Math.max(-1.5, Math.min(1.5, pitch - e.movementY * 0.002)); 
                 camera.quaternion.setFromEuler(new THREE.Euler(pitch, yaw, 0, 'YXZ')); 
             });
-            window.addEventListener('mouseup', e => {
-                if(e.button === 2) isRmbDown = false;
-            });
-
-            let touchStartX = 0, touchStartY = 0;
-            window.addEventListener('touchstart', e => {
-                if(e.touches.length === 1 && e.target.tagName === 'CANVAS') {
-                    isRmbDown = true;
-                    touchStartX = e.touches[0].clientX;
-                    touchStartY = e.touches[0].clientY;
-                }
-            }, {passive: true});
-            window.addEventListener('touchmove', e => {
-                if(!isRmbDown || e.touches.length !== 1) return;
-                let dx = e.touches[0].clientX - touchStartX;
-                let dy = e.touches[0].clientY - touchStartY;
-                touchStartX = e.touches[0].clientX;
-                touchStartY = e.touches[0].clientY;
-                yaw -= dx * 0.004;
-                pitch = Math.max(-1.5, Math.min(1.5, pitch - dy * 0.004));
-                camera.quaternion.setFromEuler(new THREE.Euler(pitch, yaw, 0, 'YXZ'));
-            }, {passive: true});
-            window.addEventListener('touchend', e => { isRmbDown = false; });
-            
+            window.addEventListener('mouseup', e => { if(e.button === 2) isRmbDown = false; });
             document.addEventListener('keydown',e=>{ 
                 keys[e.code]=true; 
                 if(!matchStarted) return;
@@ -289,32 +294,24 @@
                 if(e.code==='Digit3')triggerSpawn('helicopter');
             });
             document.addEventListener('keyup',e=>keys[e.code]=false);
-            
             document.addEventListener('pointerdown', e => {
                 if(e.target.tagName !== 'CANVAS') return;
-                mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-                mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+                mouse.x = (e.clientX / window.innerWidth) * 2 - 1; mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
                 handleInteraction(e.button === 2 ? 'right' : 'left');
             });
-
             window.addEventListener('resize',()=>{camera.aspect=window.innerWidth/window.innerHeight;camera.updateProjectionMatrix();renderer.setSize(window.innerWidth,window.innerHeight);});
         }
 
+        function handleTouch(e, key, isPressed) { e.preventDefault(); keys[key] = isPressed; }
+
         function triggerSpawn(typ) {
-            if(!matchStarted) return;
-            if(gold < COSTS[typ]) return;
+            if(!matchStarted || gold < COSTS[typ]) return;
             gold -= COSTS[typ]; document.getElementById('gold-val').innerText = gold;
-
             let basePt = myTeam === 'player' ? playerSpawnPoint : aiSpawnPoint;
-            let offset = new THREE.Vector3((Math.random()-.5)*10, 0, (Math.random()-.5)*10);
-            let spawnLoc = basePt.clone().add(offset);
+            let spawnLoc = basePt.clone().add(new THREE.Vector3((Math.random()-.5)*10, 0, (Math.random()-.5)*10));
             let uId = `${socket.id}_${++unitIdCounter}`;
-            
             spU(typ, myTeam, spawnLoc, uId);
-
-            if(currentRoomId) {
-                socket.emit('spawn_unit', { roomId: currentRoomId, unitId: uId, type: typ, team: myTeam, pos: {x: spawnLoc.x, y: spawnLoc.y, z: spawnLoc.z} });
-            }
+            if(currentRoomId) socket.emit('spawn_unit', { roomId: currentRoomId, unitId: uId, type: typ, team: myTeam, pos: spawnLoc });
         }
 
         function getH(x,z) {
@@ -323,29 +320,12 @@
             for(let i=0;i<p.count;i++){let d=Math.pow(p.getX(i)-x,2)+Math.pow(p.getZ(i)-z,2);if(d<mD){mD=d;cl=p.getY(i);}} return cl;
         }
 
-        // --- EXPANSION & REBUILD RULE ---
         function canConnectToTeam(objPos, tm) {
             let baseCenter = tm === 'player' ? playerSpawnPoint : aiSpawnPoint;
             if (objPos.distanceTo(baseCenter) <= 35) return true;
-
-            for (let t of towers) {
-                if (t.purchased && t.team === tm && objPos.distanceTo(t.group.position) <= 35) return true;
-            }
-            for (let w of walls) {
-                if (w.purchased && w.team === tm && objPos.distanceTo(w.group.position) <= 35) return true;
-            }
-
-            // Allow rebuilding within territory zone even if a connecting link was destroyed
-            let hasNearbyActiveAlly = false;
-            for (let t of towers) {
-                if (t.team === tm && objPos.distanceTo(t.group.position) <= 45) { hasNearbyActiveAlly = true; break; }
-            }
-            if (!hasNearbyActiveAlly) {
-                for (let w of walls) {
-                    if (w.team === tm && objPos.distanceTo(w.group.position) <= 45) { hasNearbyActiveAlly = true; break; }
-                }
-            }
-            return hasNearbyActiveAlly;
+            for (let t of towers) if (t.purchased && t.team === tm && objPos.distanceTo(t.group.position) <= 35) return true;
+            for (let w of walls) if (w.purchased && w.team === tm && objPos.distanceTo(w.group.position) <= 35) return true;
+            return false;
         }
 
         function makeHB(w,h,gr=false) {
@@ -359,15 +339,9 @@
         }
         function makeBB(txt,col) {
             let c=document.createElement('canvas');c.width=256;c.height=128;let ctx=c.getContext('2d');
-            ctx.font='bold 54px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
-            ctx.fillStyle='#000';ctx.fillText(txt,130,68);
-            ctx.fillStyle=col;ctx.fillText(txt,126,64);
+            ctx.font='bold 54px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#000';ctx.fillText(txt,130,68);ctx.fillStyle=col;ctx.fillText(txt,126,64);
             let t=new THREE.CanvasTexture(c), m=new THREE.Mesh(new THREE.PlaneGeometry(4.5,2.25),new THREE.MeshBasicMaterial({map:t,side:2,transparent:true}));
             m.userData={c,ctx,t}; return m;
-        }
-        function upUnitLevelBillboard(o) {
-            if(!o.levelBillboard)return; let ctx=o.levelBillboard.userData.ctx; ctx.clearRect(0,0,128,64); ctx.font='bold 38px sans-serif'; ctx.textAlign='center'; ctx.fillStyle='#000';
-            let txt = "" + o.level; ctx.fillText(txt,66,40); ctx.fillStyle='#ffd700'; ctx.fillText(txt,64,38); o.levelBillboard.userData.t.needsUpdate=true;
         }
         function upCost(o) {
             let updateBillboardSide = (bb) => {
@@ -377,8 +351,7 @@
                 else{ ctx.fillText(o.type==='wall'?(o.isOpen?"OPEN":"CLOSE"):"MAX",130,68); ctx.fillStyle='#0fc'; ctx.fillText(o.type==='wall'?(o.isOpen?"OPEN":"CLOSE"):"MAX",126,64); }
                 bb.userData.t.needsUpdate=true;
             };
-            updateBillboardSide(o.costBillboard);
-            updateBillboardSide(o.costBillboardBack);
+            updateBillboardSide(o.costBillboard); updateBillboardSide(o.costBillboardBack);
         }
         function makeBase(x,z,tm) {
             let y=getH(x,z), g=new THREE.Group(); g.position.set(x,y,z);
@@ -393,9 +366,8 @@
             if(e.hp<=0) {
                 if(e.type==='tower'||e.type==='wall') {
                     e.purchaseCount++; e.purchased=false; e.level=1; e.team='neutral'; e.maxHp=HP_M[e.type]; e.hp=e.maxHp; e.hpBar.visible=false; if(e.hpBarBack)e.hpBarBack.visible=false;
-                    if(e.type==='tower'){ e.tD=35; e.fR=1.2; e.radRing.material.color.setHex(0x4477aa); } else { e.isOpen=false; e.targetY=1.5; e.gateMesh.position.y=1.5; }
                     let mat=new THREE.MeshStandardMaterial({color:e.type==='tower'?0x4477aa:0xaa6644,transparent:true,opacity:0.2}); e.components.forEach(c=>c.material=mat); upCost(e);
-                } else { scene.remove(e.mesh); if(e.shadow)scene.remove(e.shadow); units=units.filter(u=>u!==e); if(selected===e) selected=null; }
+                } else { scene.remove(e.mesh); units=units.filter(u=>u!==e); if(selected===e) selected=null; }
             }
         }
         function makeTower(x,y,z) {
@@ -403,17 +375,15 @@
             let b=new THREE.Mesh(new THREE.CylinderGeometry(2,2.5,1.5,8),mat); b.position.y=0.75; g.add(b);
             let s=new THREE.Mesh(new THREE.CylinderGeometry(1.2,1.6,6,8),mat); s.position.y=4.5; g.add(s);
             let h=new THREE.Mesh(new THREE.CylinderGeometry(2,1.5,1.5,8),mat); h.position.y=8.25; g.add(h);
-            let gn=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.5,3),mat); gn.position.set(0,8.25,1.5); g.add(gn);
-            let rr=new THREE.Mesh(new THREE.RingGeometry(29,30,32).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0x4477aa,transparent:true,opacity:0})); rr.position.y=0.1; g.add(rr);
             let hb=new THREE.Mesh(new THREE.CylinderGeometry(2.5,2.5,9,8),new THREE.MeshBasicMaterial({visible:false})); hb.position.y=4.5; g.add(hb);
             let hp=makeHB(2.5,0.5); hp.position.y=10.3; g.add(hp); hp.visible=false;
             let cb=makeBB("$100",'#ffd700'); cb.position.y=9.5; g.add(cb); scene.add(g);
-            let tObj={type:'tower',team:'neutral',x,z,group:g,components:[b,s,h,gn],radRing:rr,hb,hpBar:hp,costBillboard:cb,purchased:false,purchaseCount:0,level:1,hp:HP_M.tower,maxHp:HP_M.tower,attackCD:0,tD:35,fR:1.2};
+            let tObj={type:'tower',team:'neutral',x,z,group:g,components:[b,s,h],hb,hpBar:hp,costBillboard:cb,purchased:false,purchaseCount:0,level:1,hp:HP_M.tower,maxHp:HP_M.tower};
             hb.userData.towerRef=tObj; towers.push(tObj); towerHitboxes.push(hb); upCost(tObj);
         }
         function ownTower(t,tm) {
             t.purchased=true; t.team=tm; t.hpBar.visible=true; upHB(t.hpBar,t.hp,t.maxHp);
-            t.components.forEach(c=>c.material=new THREE.MeshStandardMaterial({map:tm==='player'?pTex:aTex})); t.radRing.material.color.setHex(tm==='player'?0x114488:0xaa1111); upCost(t);
+            t.components.forEach(c=>c.material=new THREE.MeshStandardMaterial({map:tm==='player'?pTex:aTex})); upCost(t);
         }
         function makeWall(x,z,len,rot) {
             let g=new THREE.Group(); g.position.set(x,getH(x,z),z); g.rotation.y=rot; let mat=new THREE.MeshStandardMaterial({color:0xaa6644,transparent:true,opacity:0.15});
@@ -433,298 +403,118 @@
             w.components.forEach(c=>c.material=new THREE.MeshStandardMaterial({map:tm==='player'?pTex:aTex})); upCost(w);
         }
         function upStruct(o) {
-            o.level++; if(o.type==='tower'){ let t=T_UP[o.level]; o.maxHp=t.hp; o.tD=t.dmg; o.fR=t.cd; } else { o.maxHp=W_UP[o.level].hp; }
-            o.hp=o.maxHp; upHB(o.hpBar,o.hp,o.maxHp); if(o.hpBarBack)upHB(o.hpBarBack,o.hp,o.maxHp); upCost(o);
+            o.level++; o.maxHp=(o.type==='tower'?T_UP:W_UP)[o.level].hp; o.hp=o.maxHp;
+            upHB(o.hpBar,o.hp,o.maxHp); if(o.hpBarBack)upHB(o.hpBarBack,o.hp,o.maxHp); upCost(o);
         }
 
         function spU(typ, tm, loc, uId) {
-            if(!matchStarted) return;
-            if(units.some(u => u.id === uId)) return;
-
-            let unitMatTexture = (tm === 'player') ? pTex : aTex;
-            let g=new THREE.Group(), mat=new THREE.MeshStandardMaterial({map: unitMatTexture}), img=new THREE.Group(); g.add(img);
-            let tur=null;
-
-            if(typ==='infantry') {
-                let legs = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.4, 0.2), mat); legs.position.y = 0.2; img.add(legs);
-                let torso = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.5, 0.25), mat); torso.position.y = 0.65; img.add(torso);
-                let head = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 8), new THREE.MeshStandardMaterial({color: 0xddaa88})); head.position.y = 1.0; img.add(head);
-                let helmet = new THREE.Mesh(new THREE.SphereGeometry(0.2, 8, 8, 0, Math.PI*2, 0, Math.PI/2), mat); helmet.position.y = 1.02; img.add(helmet);
-                let rifle = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.75), new THREE.MeshStandardMaterial({color: 0x111111})); rifle.position.set(0.2, 0.65, -0.35); img.add(rifle);
-            } else if(typ==='tank') {
-                let b=new THREE.Mesh(new THREE.BoxGeometry(1.6,0.5,2.4),mat); b.position.y=0.25; img.add(b); tur=new THREE.Group(); tur.position.y=0.5;
-                let hd=new THREE.Mesh(new THREE.CylinderGeometry(0.6,0.7,0.4,8),mat); hd.position.y=0.15; tur.add(hd);
-                let br=new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.08,1.2,6).rotateX(Math.PI/2),mat); br.position.set(0,0.15,-0.9); tur.add(br); img.add(tur);
-            } else {
-                let b=new THREE.Mesh(new THREE.SphereGeometry(0.6,8,8),mat); b.scale.set(1,1,1.6); b.position.set(0,0.5,-0.5); img.add(b);
-                loc.y += 5.5;
-            }
-            
-            let rR=typ==='infantry'?.75:(typ==='tank'?1.6:1.7);
-            let r=new THREE.Mesh(new THREE.RingGeometry(rR,rR+0.2,16).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:tm===myTeam?0x00ffcc:0xff2222,side:2}));
+            if(!matchStarted || units.some(u => u.id === uId)) return;
+            let mat=new THREE.MeshStandardMaterial({map: tm==='player'?pTex:aTex}), g=new THREE.Group();
+            let meshGeo = typ==='infantry' ? new THREE.BoxGeometry(0.5,1.2,0.5) : (typ==='tank' ? new THREE.BoxGeometry(1.6,0.6,2.4) : new THREE.SphereGeometry(0.6,8,8));
+            let mesh = new THREE.Mesh(meshGeo, mat); mesh.position.y = typ==='infantry'?0.6:(typ==='tank'?0.3:3.0); g.add(mesh);
+            let r = new THREE.Mesh(new THREE.RingGeometry(1,1.2,16).rotateX(-Math.PI/2), new THREE.MeshBasicMaterial({color:tm===myTeam?0x00ffcc:0xff2222,side:2}));
             r.position.y=0.12; r.visible=false; g.add(r);
-
-            let weaponRange = typ === 'infantry' ? 18 : (typ === 'tank' ? 22 : 25);
-            let rangeRing = new THREE.Mesh(
-                new THREE.RingGeometry(weaponRange - 0.2, weaponRange, 32).rotateX(-Math.PI / 2),
-                new THREE.MeshBasicMaterial({ color: 0x00ffcc, transparent: true, opacity: 0, side: 2 })
-            );
-            rangeRing.position.y = 0.11; g.add(rangeRing);
-
             let hb=new THREE.Mesh(new THREE.BoxGeometry(1.5,1.5,1.5),new THREE.MeshBasicMaterial({visible:false})); g.add(hb);
-            let hp=makeHB(1.6,0.3); hp.position.y=typ==='infantry'?1.5:1.3; g.add(hp); 
-            let cb=makeBB("1",'#ffd700'); cb.position.y=typ==='infantry'?2.0:1.8; cb.rotation.y = tm === 'enemy' ? Math.PI : 0; g.add(cb); 
+            let hp=makeHB(1.6,0.3); hp.position.y=2.0; g.add(hp);
             g.position.copy(loc); scene.add(g);
-            
-            let o={id: uId, mesh:g, innerMeshGroup:img, tankTurretGroup:tur, turretOT:0, turretTY:0, curTurY:0, hitbox:hb, ring:r, rangeRing:rangeRing, hpBar:hp, levelBillboard:cb, type:typ, team:tm, level:1, speed:typ==='helicopter'?12:(typ==='tank'?4:5.5), target:null, actCD:0, hp:HP_M[typ], maxHp:HP_M[typ]};
-            hb.userData.ref=o; upUnitLevelBillboard(o); units.push(o);
+            let o={id: uId, mesh:g, hitbox:hb, ring:r, hpBar:hp, type:typ, team:tm, level:1, speed:typ==='helicopter'?12:(typ==='tank'?4:5.5), target:null, actCD:0, hp:HP_M[typ], maxHp:HP_M[typ]};
+            hb.userData.ref=o; units.push(o);
         }
 
-        socket.on('spawn_unit', (data) => {
-            spU(data.type, data.team, new THREE.Vector3(data.pos.x, data.pos.y, data.pos.z), data.unitId);
-        });
-
-        socket.on('unit_order_move', (data) => {
-            let u = units.find(item => item.id === data.unitId);
-            if(u) {
-                u.target = new THREE.Vector3(data.target.x, data.target.y, data.target.z);
-            }
-        });
-
+        socket.on('spawn_unit', (data) => spU(data.type, data.team, new THREE.Vector3(data.pos.x, data.pos.y, data.pos.z), data.unitId));
+        socket.on('unit_order_move', (data) => { let u = units.find(i=>i.id===data.unitId); if(u) u.target=new THREE.Vector3(data.target.x,data.target.y,data.target.z); });
         socket.on('buy_structure', (data) => {
-            if (data.type === 'tower') {
-                let t = towers.find(item => item.x === data.x && item.z === data.z);
-                if (t) { t.purchaseCount = data.purchaseCount; ownTower(t, data.team); }
-            } else if (data.type === 'wall') {
-                let w = walls.find(item => item.x === data.x && item.z === data.z && item.rotationY === data.rotationY);
-                if (w) { w.purchaseCount = data.purchaseCount; ownWall(w, data.team); }
-            }
+            if (data.type === 'tower') { let t = towers.find(i => i.x === data.x && i.z === data.z); if(t){ t.purchaseCount = data.purchaseCount; ownTower(t, data.team); } }
+            else if (data.type === 'wall') { let w = walls.find(i => i.x === data.x && i.z === data.z && i.rotationY === data.rotationY); if(w){ w.purchaseCount = data.purchaseCount; ownWall(w, data.team); } }
         });
-
         socket.on('upgrade_structure', (data) => {
-            if (data.type === 'tower') {
-                let t = towers.find(item => item.x === data.x && item.z === data.z);
-                if (t) { upStruct(t); }
-            } else if (data.type === 'wall') {
-                let w = walls.find(item => item.x === data.x && item.z === data.z && item.rotationY === data.rotationY);
-                if (w) { upStruct(w); }
-            }
+            let o = data.type==='tower' ? towers.find(i=>i.x===data.x&&i.z===data.z) : walls.find(i=>i.x===data.x&&i.z===data.z&&i.rotationY===data.rotationY);
+            if(o) upStruct(o);
         });
-
         socket.on('toggle_gate', (data) => {
-            let w = walls.find(item => item.x === data.x && item.z === data.z && item.rotationY === data.rotationY);
-            if (w) { w.isOpen = data.isOpen; w.targetY = w.isOpen ? -1.4 : 1.5; upCost(w); }
+            let w = walls.find(i=>i.x===data.x&&i.z===data.z&&i.rotationY===data.rotationY);
+            if(w){ w.isOpen = data.isOpen; w.targetY = w.isOpen ? -1.4 : 1.5; upCost(w); }
         });
-
-        function getLOS(orig,targ,tm, targetObj = null) {
-            let d=new THREE.Vector3().subVectors(targ,orig), dst=d.length(); d.normalize(); let ray=new THREE.Ray(orig,d), cObstacle=null, cD=dst;
-            for(let w of walls){
-                if(!w.purchased||(w.level>=4&&w.isOpen))continue;
-                if(targetObj && targetObj === w) continue;
-                let box=new THREE.Box3().setFromObject(w.components[0].parent), pt=new THREE.Vector3();
-                if(ray.intersectBox(box,pt)){let dist=orig.distanceTo(pt);if(dist<cD){cD=dist;cObstacle=w;targ.copy(pt);}}
-            }
-            for(let t of towers){
-                if(!t.purchased)continue;
-                if(targetObj && targetObj === t) continue;
-                let box=new THREE.Box3().setFromObject(t.group), pt=new THREE.Vector3();
-                if(ray.intersectBox(box,pt)){let dist=orig.distanceTo(pt);if(dist<cD){cD=dist;cObstacle=t;targ.copy(pt);}}
-            }
-            return cObstacle;
-        }
 
         function fire(tPt) {
             if(gameOverActive||!selected)return;
             let u = selected;
-            let maxRng = u.type==='infantry'?18:(u.type==='tank'?22:25);
-            if(u.team!==myTeam||u.actCD>0||u.mesh.position.distanceTo(tPt)>maxRng)return;
-            u.target=null; let orig=u.mesh.position.clone(); orig.y+=(u.type==='tank'?0.65:0.5);
-            let dT=tPt.clone(), bW=getLOS(orig,dT,myTeam), dmgV=DMG[u.type]*TR_UP[u.level].mD;
-            u.actCD=(u.type==='tank'?2.2:0.8)*TR_UP[u.level].mC;
-            if(u.type==='tank') {
-                let sM=new THREE.Mesh(new THREE.SphereGeometry(0.2,4,4),new THREE.MeshBasicMaterial({color:0x222222})); sM.position.copy(orig); scene.add(sM);
-                projs.push({mesh:sM,start:orig.clone(),end:dT.clone(),p:0,dmg:dmgV,team:myTeam,hitWall:bW});
-                u.turretTY=Math.atan2(dT.x-orig.x,dT.z-orig.z)+Math.PI-u.mesh.rotation.y; u.turretOT=1.8;
-            } else {
-                let lM=new THREE.Line(new THREE.BufferGeometry().setFromPoints([orig,dT]),new THREE.LineBasicMaterial({color:0xff0055})); scene.add(lM);
-                expls.push({m:lM,t:0.15,type:'laser'}); if(bW)dmg(bW,dmgV); else expDmg(dT,3.5,dmgV,myTeam);
-            }
-        }
-
-        function expDmg(pt,rad,d,tm) {
-            if(gameOverActive)return;
-            towers.forEach(t=>{if(t.purchased&&t.team!==tm&&t.group.position.distanceTo(pt)<=rad+2)dmg(t,d);});
-            walls.forEach(w=>{if(w.purchased&&w.team!==tm&&w.group.position.distanceTo(pt)<=rad+2)dmg(w,d);});
-            units.forEach(u=>{if(u.team!==tm&&u.mesh.position.distanceTo(pt)<=rad)dmg(u,d);});
-            if(playerBase.position.distanceTo(pt)<=rad+8&&tm!=='player')dmg(playerBase,d); if(aiBase.position.distanceTo(pt)<=rad+8&&tm!=='enemy')dmg(aiBase,d);
-        }
-
-        function chkW(u,nX,nZ) {
-            if(u&&u.type==='helicopter')return false;
-            for(let w of walls){
-                let dx=nX-w.x, dz=nZ-w.z, lX=dx*Math.cos(-w.rotationY)-dz*Math.sin(-w.rotationY), lZ=dx*Math.sin(-w.rotationY)+dz*Math.cos(-w.rotationY);
-                if(Math.abs(lZ)<1&&Math.abs(lX)<w.length/2){if(w.purchased&&w.level>=4&&w.isOpen&&Math.abs(lX)<2.8)continue; return true;}
-            } return false;
+            if(u.team!==myTeam||u.actCD>0)return;
+            u.actCD = 1.0;
+            let lM=new THREE.Line(new THREE.BufferGeometry().setFromPoints([u.mesh.position, tPt]), new THREE.LineBasicMaterial({color:0xff0055}));
+            scene.add(lM);
+            expls.push({m:lM, t:0.15, type:'laser'});
+            units.forEach(other => { if(other.team!==myTeam && other.mesh.position.distanceTo(tPt)<=4) dmg(other, DMG[u.type]); });
         }
 
         function handleInteraction(clickType) {
             if(!matchStarted || gameOverActive) return;
-            let now = performance.now();
             rc.setFromCamera(mouse, camera);
             let tHits = rc.intersectObject(terrainMesh);
+            if(clickType === 'right') { if(selected && tHits.length>0) fire(tHits[0].point); return; }
 
-            if(clickType === 'right') {
-                if(selected) fire(tHits[0].point);
-                return;
-            }
-
-            let tH = rc.intersectObjects(towerHitboxes);
-            let wH = rc.intersectObjects(wallHitboxes);
+            let tH = rc.intersectObjects(towerHitboxes), wH = rc.intersectObjects(wallHitboxes);
             let uHbs = units.filter(u=>u.team===myTeam).map(u=>u.hitbox), clU = rc.intersectObjects(uHbs);
 
             if(clU.length > 0) {
-                let u = clU[0].object.parent.userData.ref || clU[0].object.userData.ref;
-                if(u && u.team === myTeam) {
-                    if(selected === u) { selected.ring.visible = false; selected.rangeRing.material.opacity = 0; selected = null; }
-                    else {
-                        if(selected) { selected.ring.visible = false; selected.rangeRing.material.opacity = 0; }
-                        selected = u; u.ring.visible = true; u.rangeRing.material.opacity = 0.5;
-                    }
-                }
+                let u = clU[0].object.userData.ref || clU[0].object.parent.userData.ref;
+                if(selected) selected.ring.visible = false;
+                selected = u; u.ring.visible = true;
             } else if(tH.length > 0) {
                 let t = tH[0].object.userData.towerRef;
                 let cost = COSTS.tower * Math.pow(2, t.purchaseCount);
-                if(!t.purchased) {
-                    if(!canConnectToTeam(t.group.position, myTeam)) return;
-                }
-                if(!t.purchased && gold >= cost) {
+                if(!t.purchased && canConnectToTeam(t.group.position, myTeam) && gold >= cost) {
                     gold -= cost; document.getElementById('gold-val').innerText = gold; ownTower(t, myTeam);
-                    if(currentRoomId) socket.emit('buy_structure', { roomId: currentRoomId, type: 'tower', x: t.x, z: t.z, team: myTeam, purchaseCount: t.purchaseCount });
-                } else if(t.team === myTeam && t.level < 5 && gold >= T_UP[t.level+1].cost) {
-                    gold -= T_UP[t.level+1].cost; document.getElementById('gold-val').innerText = gold; upStruct(t);
-                    if(currentRoomId) socket.emit('upgrade_structure', { roomId: currentRoomId, type: 'tower', x: t.x, z: t.z });
+                    socket.emit('buy_structure', { roomId: currentRoomId, type: 'tower', x: t.x, z: t.z, team: myTeam, purchaseCount: t.purchaseCount });
                 }
             } else if(wH.length > 0) {
                 let w = wH[0].object.userData.wallRef;
                 let cost = COSTS.wall * Math.pow(2, w.purchaseCount);
-                if(!w.purchased) {
-                    if(!canConnectToTeam(w.group.position, myTeam)) return;
-                }
-                if(!w.purchased && gold >= cost) {
+                if(!w.purchased && canConnectToTeam(w.group.position, myTeam) && gold >= cost) {
                     gold -= cost; document.getElementById('gold-val').innerText = gold; ownWall(w, myTeam);
-                    if(currentRoomId) socket.emit('buy_structure', { roomId: currentRoomId, type: 'wall', x: w.x, z: w.z, rotationY: w.rotationY, team: myTeam, purchaseCount: w.purchaseCount });
-                } else if(w.team === myTeam) {
-                    if(w.level < 4 && gold >= W_UP[w.level+1].cost) { 
-                        gold -= W_UP[w.level+1].cost; document.getElementById('gold-val').innerText = gold; upStruct(w); 
-                        if(currentRoomId) socket.emit('upgrade_structure', { roomId: currentRoomId, type: 'wall', x: w.x, z: w.z, rotationY: w.rotationY });
-                    } else if(w.level >= 4) { 
-                        w.isOpen = !w.isOpen; w.targetY = w.isOpen ? -1.4 : 1.5; upCost(w); 
-                        if(currentRoomId) socket.emit('toggle_gate', { roomId: currentRoomId, x: w.x, z: w.z, rotationY: w.rotationY, isOpen: w.isOpen });
-                    }
+                    socket.emit('buy_structure', { roomId: currentRoomId, type: 'wall', x: w.x, z: w.z, rotationY: w.rotationY, team: myTeam, purchaseCount: w.purchaseCount });
                 }
             } else if(tHits.length > 0 && selected) {
                 selected.target = tHits[0].point.clone();
-                if(currentRoomId) {
-                    socket.emit('unit_order_move', { roomId: currentRoomId, unitId: selected.id, target: {x: selected.target.x, y: selected.target.y, z: selected.target.z} });
-                }
+                socket.emit('unit_order_move', { roomId: currentRoomId, unitId: selected.id, target: selected.target });
             }
-            lastClick = now;
         }
 
         function animate() {
-            requestAnimationFrame(animate); let time=performance.now(), delta=(time-prevTime)/1000; prevTime=time;
+            requestAnimationFrame(animate);
+            let time = performance.now(), delta = (time - prevTime)/1000; prevTime = time;
             if(!matchStarted || gameOverActive) return;
 
-            goldTimer+=delta; 
-            if(goldTimer>=1){ gold+=15; enemyGold+=15; goldTimer-=1; document.getElementById('gold-val').innerText=Math.floor(gold); document.getElementById('ai-gold-val').innerText=Math.floor(enemyGold); }
-            
-            walls.forEach(w=>w.gateMesh.position.y=THREE.MathUtils.lerp(w.gateMesh.position.y,w.targetY,8*delta));
-            
-            for(let i=projs.length-1;i>=0;i--) {
-                let p=projs[i]; p.p+=4*delta;
-                if(p.p>=1){
-                    let ex=new THREE.Mesh(new THREE.RingGeometry(0.01,1.5,8).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0xff3300,side:2,transparent:true})); ex.position.copy(p.end).y+=0.1; scene.add(ex); 
-                    expls.push({m:ex,t:0.3,type:'ring'}); scene.remove(p.mesh);
-                    if(p.hitWall)dmg(p.hitWall,p.dmg); else expDmg(p.end,4,p.dmg,p.team); projs.splice(i,1);
-                } else { p.mesh.position.lerpVectors(p.start,p.end,p.p); }
-            }
-            for(let i=expls.length-1;i>=0;i--) {
-                let e=expls[i]; e.t-=delta; if(e.t<=0){scene.remove(e.m);expls.splice(i,1);}
-                else if(e.type==='ring'){let f=(0.3-e.t)*12;e.m.scale.set(f,f,f);e.m.material.opacity=e.t/0.3;} else if(e.type==='laser'){e.m.material.opacity=e.t/0.15;}
-            }
+            goldTimer += delta;
+            if(goldTimer >= 1){ gold += 15; enemyGold += 15; goldTimer -= 1; document.getElementById('gold-val').innerText = Math.floor(gold); document.getElementById('ai-gold-val').innerText = Math.floor(enemyGold); }
 
-            units.forEach(u=>{
-                if(u.actCD>0)u.actCD-=delta;
-                let gh=getH(u.mesh.position.x,u.mesh.position.z);
-                let rng = u.type==='infantry'?18:(u.type==='tank'?22:25);
+            walls.forEach(w => w.gateMesh.position.y = THREE.MathUtils.lerp(w.gateMesh.position.y, w.targetY, 8*delta));
+            for(let i = expls.length - 1; i >= 0; i--) { let e = expls[i]; e.t -= delta; if(e.t <= 0){ scene.remove(e.m); expls.splice(i, 1); } }
 
-                if(u.team === myTeam && !gameOverActive && u.actCD <= 0) {
-                    let targetTeam = u.team === 'player' ? 'enemy' : 'player';
-                    let bestTarget = null, bestDist = Infinity;
-                    
-                    units.forEach(other => {
-                        if(other.team === targetTeam) {
-                            let d = u.mesh.position.distanceTo(other.mesh.position);
-                            if(d < bestDist && d <= rng) { bestDist = d; bestTarget = {type:'unit', obj:other, pos:other.mesh.position.clone().add(new THREE.Vector3(0,0.5,0))}; }
-                        }
-                    });
-
-                    if(bestTarget) {
-                        let orig = u.mesh.position.clone(); orig.y += (u.type === 'tank' ? 0.65 : 0.5);
-                        let tPt = bestTarget.pos.clone();
-                        let bW = getLOS(orig, tPt, u.team, bestTarget.obj);
-                        let dmgV = DMG[u.type] * TR_UP[u.level].mD;
-
-                        if(!bW) {
-                            u.actCD = (u.type === 'tank' ? 2.2 : 0.8) * TR_UP[u.level].mC;
-                            if(u.type === 'tank') {
-                                let sM = new THREE.Mesh(new THREE.SphereGeometry(0.2, 4, 4), new THREE.MeshBasicMaterial({color: u.team === 'player' ? 0x222222 : 0x550000}));
-                                sM.position.copy(orig); scene.add(sM);
-                                projs.push({mesh: sM, start: orig.clone(), end: tPt.clone(), p: 0, dmg: dmgV, team: u.team, hitWall: null});
-                                u.turretTY = Math.atan2(tPt.x - orig.x, tPt.z - orig.z) + Math.PI - u.mesh.rotation.y; u.turretOT = 1.8;
-                            } else {
-                                let lM = new THREE.Line(new THREE.BufferGeometry().setFromPoints([orig, tPt]), new THREE.LineBasicMaterial({color: u.team === 'player' ? 0xff0055 : 0xff2222}));
-                                scene.add(lM);
-                                expls.push({m: lM, t: 0.15, type: 'laser'});
-                                if(bestTarget.type === 'unit') dmg(bestTarget.obj, dmgV);
-                                else if(bestTarget.type === 'wall') dmg(bestTarget.obj, dmgV);
-                                else if(bestTarget.type === 'tower') dmg(bestTarget.obj, dmgV);
-                                else if(bestTarget.type === 'base') dmg(bestTarget.obj, dmgV);
-                            }
-                        }
-                    }
-                }
-
-                if(u.type==='tank'&&u.tankTurretGroup){ if(u.turretOT>0){u.turretOT-=delta;u.curTurY=THREE.MathUtils.lerp(u.curTurY,u.turretTY,12*delta);}else{if(u.target!==null)u.curTurY+=2*delta;else u.curTurY=THREE.MathUtils.lerp(u.curTurY,0,4*delta);} u.tankTurretGroup.rotation.y=u.curTurY; }
-
+            units.forEach(u => {
+                if(u.actCD > 0) u.actCD -= delta;
                 if(u.target) {
-                    let d3=new THREE.Vector3().subVectors(u.target,u.mesh.position); let dist=new THREE.Vector2(d3.x,d3.z).length();
-                    if(dist>.15) {
-                        let d2=new THREE.Vector2(d3.x,d3.z).normalize(), nX=u.mesh.position.x+d2.x*u.speed*delta, nZ=u.mesh.position.z+d2.y*u.speed*delta;
-                        if(!chkW(u,nX,nZ)){ u.mesh.position.x=nX; u.mesh.position.z=nZ; u.mesh.rotation.y=Math.atan2(-d2.x,-d2.y); }
-                        else { u.target=null; }
-                    } else { u.target=null; }
+                    let d = new THREE.Vector3().subVectors(u.target, u.mesh.position);
+                    if(new THREE.Vector2(d.x, d.z).length() > 0.2) {
+                        let dir = new THREE.Vector2(d.x, d.z).normalize();
+                        u.mesh.position.x += dir.x * u.speed * delta;
+                        u.mesh.position.z += dir.y * u.speed * delta;
+                        u.mesh.rotation.y = Math.atan2(-dir.x, -dir.y);
+                    } else { u.target = null; }
                 }
-                let targetYPos = u.type==='helicopter' ? gh+5.5 : gh;
-                u.mesh.position.y=THREE.MathUtils.lerp(u.mesh.position.y, targetYPos, 5*delta);
             });
 
             velocity.multiplyScalar(1 - 10 * delta);
-            let f = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-            let r = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+            let f = new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion);
+            let r = new THREE.Vector3(1,0,0).applyQuaternion(camera.quaternion);
             f.y = r.y = 0; f.normalize(); r.normalize();
-            
             let mv = new THREE.Vector3();
-            if (keys['KeyW']) mv.add(f);
-            if (keys['KeyS']) mv.sub(f);
-            if (keys['KeyD']) mv.add(r);
-            if (keys['KeyA']) mv.sub(r);
+            if (keys['KeyW']) mv.add(f); if (keys['KeyS']) mv.sub(f);
+            if (keys['KeyD']) mv.add(r); if (keys['KeyA']) mv.sub(r);
             mv.normalize();
-            
             velocity.addScaledVector(mv, 180 * delta);
             camera.position.x += velocity.x * delta;
             camera.position.z += velocity.z * delta;
-            camera.position.y = 38;
 
             renderer.render(scene, camera);
         }

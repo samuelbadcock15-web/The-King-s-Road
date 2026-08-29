@@ -8,13 +8,174 @@
         body { 
             margin: 0; 
             overflow: hidden; 
-            background: #000; 
-            font-family: sans-serif; 
+            background: #0b0d14; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
             user-select: none; 
             -webkit-user-select: none; 
             touch-action: manipulation; 
         }
         #c { width: 100vw; height: 100vh; display: block; }
+
+        /* --- LOBBY OVERLAY SYSTEM --- */
+        #lobby-overlay {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background: radial-gradient(circle at center, #1b2033 0%, #0a0c13 100%);
+            z-index: 500;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+            color: #fff;
+        }
+
+        .lobby-header {
+            text-align: center;
+            margin-top: 10px;
+            margin-bottom: 20px;
+        }
+        .lobby-header h1 {
+            font-size: clamp(24px, 5vw, 42px);
+            margin: 0;
+            letter-spacing: 2px;
+            color: #00ffcc;
+            text-shadow: 0 0 20px rgba(0,255,204,0.4);
+        }
+        .lobby-header p {
+            margin: 5px 0 0;
+            color: #8892b0;
+            font-size: clamp(12px, 2.5vw, 15px);
+        }
+
+        #lobbies-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+            width: 100%;
+            max-width: 950px;
+        }
+
+        .arena-card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 14px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: transform 0.15s, border-color 0.2s, background 0.2s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        .arena-card:hover {
+            border-color: rgba(0, 255, 204, 0.4);
+            background: rgba(255, 255, 255, 0.07);
+        }
+        .arena-card.active-room {
+            border: 2px solid #00ffcc;
+            box-shadow: 0 0 25px rgba(0,255,204,0.25);
+            background: rgba(0, 255, 204, 0.05);
+        }
+
+        .card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .arena-name { font-weight: bold; font-size: 18px; color: #fff; }
+        .arena-badge {
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .badge-open { background: rgba(0, 255, 204, 0.15); color: #00ffcc; }
+        .badge-ready { background: rgba(255, 215, 0, 0.2); color: #ffd700; }
+        .badge-ingame { background: rgba(255, 51, 102, 0.2); color: #ff3366; }
+
+        .player-slots {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .player-slot {
+            background: rgba(0, 0, 0, 0.35);
+            padding: 8px 12px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+        }
+        .slot-name { font-weight: 600; }
+        .slot-team-player { color: #00ffcc; }
+        .slot-team-enemy { color: #ff5555; }
+        .slot-empty { color: #555e75; font-style: italic; }
+
+        .ready-pill {
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .pill-ready { background: #00ffcc; color: #000; }
+        .pill-waiting { background: #444; color: #aaa; }
+
+        .card-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .btn-join, .btn-ready, .btn-leave {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.15s ease;
+        }
+        .btn-join { background: #00ffcc; color: #051419; }
+        .btn-join:hover { background: #33ffdd; transform: translateY(-1px); }
+        .btn-join:disabled { background: #2a3142; color: #555e75; cursor: not-allowed; transform: none; }
+
+        .btn-ready { background: #2a3142; color: #fff; border: 1px solid #444; }
+        .btn-ready.is-ready { background: #00ffcc; color: #051419; border-color: #00ffcc; }
+        .btn-leave { background: #ff3366; color: #fff; flex: 0.5; }
+
+        /* Countdown Overlay */
+        #match-countdown {
+            position: absolute;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.85);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 600;
+            color: #fff;
+            text-align: center;
+        }
+        #countdown-num {
+            font-size: clamp(60px, 15vw, 120px);
+            font-weight: 900;
+            color: #00ffcc;
+            margin: 20px 0;
+            animation: popIn 0.5s ease-out;
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            80% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); }
+        }
+
+        /* --- IN-GAME HUD & CONTROLS --- */
         #resources { 
             position: absolute; 
             top: 15px; 
@@ -33,13 +194,12 @@
         .p-gold { color: #ffd700; }
         .ai-gold { color: #f44; }
         
-        /* Responsive Mobile Spawn Sidebar */
         #spawn-sidebar { 
             position: absolute; 
             top: 45%; 
             left: 15px; 
             transform: translateY(-50%); 
-            display: flex; 
+            display: none; 
             flex-direction: column; 
             gap: 12px; 
             z-index: 250; 
@@ -63,7 +223,6 @@
         .spawn-node span:first-child { font-size: clamp(20px, 5vw, 30px); font-weight: bold; }
         .spawn-node span:last-child { font-size: clamp(10px, 2.8vw, 13px); color: #ffd700; margin-top: 2px; font-weight: bold; }
 
-        /* Responsive Dual D-Pad Controls for Mobile */
         .dpad { 
             position: absolute; 
             bottom: 15px; 
@@ -112,8 +271,7 @@
             align-items: center; 
         }
 
-        /* Top Right Info Button & Popout */
-        #info-container { position: absolute; top: 15px; right: 15px; z-index: 200; }
+        #info-container { position: absolute; top: 15px; right: 15px; z-index: 200; display: none; }
         #info-btn { 
             width: 36px; 
             height: 36px; 
@@ -145,27 +303,6 @@
         }
         #info-container:hover #hud, #info-container:active #hud { display: block; }
 
-        /* Matchmaking Status Overlay */
-        #match-status-screen { 
-            position: absolute; 
-            top: 0; 
-            left: 0; 
-            width: 100vw; 
-            height: 100vh; 
-            background: rgba(0,0,0,0.85); 
-            display: flex; 
-            flex-direction: column; 
-            justify-content: center; 
-            align-items: center; 
-            color: #fff; 
-            z-index: 300; 
-            font-size: clamp(18px, 4vw, 26px); 
-            text-align: center; 
-            padding: 20px; 
-            box-sizing: border-box; 
-        }
-        #match-status-sub { font-size: 14px; color: #aaa; margin-top: 15px; }
-
         #game-over-screen { 
             position: absolute; 
             top: 0; 
@@ -178,7 +315,7 @@
             justify-content: center; 
             align-items: center; 
             color: #fff; 
-            z-index: 100; 
+            z-index: 700; 
             font-size: clamp(24px, 6vw, 36px); 
             text-align: center; 
         }
@@ -188,12 +325,29 @@
 </head>
 <body>
     <div id="c"></div>
-    <div id="resources">
+
+    <!-- 6-ROOM LOBBY OVERLAY -->
+    <div id="lobby-overlay">
+        <div class="lobby-header">
+            <h1>KING'S ROAD</h1>
+            <p>Select an Arena, join a lobby, and click READY to start battle!</p>
+        </div>
+        <div id="lobbies-grid"></div>
+    </div>
+
+    <!-- MATCH START COUNTDOWN -->
+    <div id="match-countdown">
+        <div style="font-size: 20px; color: #ffd700; font-weight: bold;" id="countdown-role-text">CONNECTED</div>
+        <div id="countdown-num">3</div>
+        <div style="color: #aaa; font-size: 14px;">Deploying forces to arena...</div>
+    </div>
+
+    <!-- IN GAME HUD -->
+    <div id="resources" style="display: none;">
         <div class="p-gold">GOLD: <span id="gold-val">200</span></div>
         <div class="ai-gold">OPPONENT: <span id="ai-gold-val">200</span></div>
     </div>
     
-    <!-- Mobile Spawn Sidebar -->
     <div id="spawn-sidebar">
         <div class="spawn-node" onclick="triggerSpawn('infantry')">
             <span>💂‍♂️</span>
@@ -209,7 +363,6 @@
         </div>
     </div>
 
-    <!-- Dual D-Pad Controls on Mobile -->
     <div id="dpad-left" class="dpad">
         <div class="d-up d-btn" ontouchstart="handleTouch(event, 'KeyW', true)" ontouchend="handleTouch(event, 'KeyW', false)">▲</div>
         <div class="d-left d-btn" ontouchstart="handleTouch(event, 'KeyA', true)" ontouchend="handleTouch(event, 'KeyA', false)">◀</div>
@@ -245,11 +398,6 @@
         </div>
     </div>
 
-    <div id="match-status-screen">
-        <div id="match-status-text">WAITING FOR OPPONENT TO CONNECT...</div>
-        <div id="match-status-sub">Share your link with a friend to start playing!</div>
-    </div>
-
     <div id="game-over-screen"></div>
 
     <script>
@@ -264,12 +412,158 @@
         let myTeam = 'player';
         let matchStarted = false;
         let currentRoomId = null;
+        let myReadyState = false;
+        let isTouchDevice = false;
 
         window.addEventListener('DOMContentLoaded', () => {
-            const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (window.innerWidth <= 1024);
-            if (isTouchDevice) {
-                document.querySelectorAll('.dpad').forEach(el => el.style.display = 'grid');
+            isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (window.innerWidth <= 1024);
+        });
+
+        // Render 6 Lobbies dynamically
+        socket.on('lobbies_update', (lobbies) => {
+            const grid = document.getElementById('lobbies-grid');
+            grid.innerHTML = '';
+
+            lobbies.forEach(lobby => {
+                const isMyCurrentRoom = currentRoomId === lobby.id;
+                const isFull = lobby.playerCount >= 2;
+                const isInGame = lobby.status === 'in_game';
+
+                const card = document.createElement('div');
+                card.className = `arena-card ${isMyCurrentRoom ? 'active-room' : ''}`;
+
+                let statusBadge = `<span class="arena-badge badge-open">Waiting (${lobby.playerCount}/2)</span>`;
+                if (isInGame) statusBadge = `<span class="arena-badge badge-ingame">In Battle</span>`;
+                else if (isFull) statusBadge = `<span class="arena-badge badge-ready">Full</span>`;
+
+                // Slot 1 & Slot 2 Display
+                const p1 = lobby.players[0];
+                const p2 = lobby.players[1];
+
+                const slot1Html = p1 
+                    ? `<div class="player-slot">
+                         <span class="slot-name ${p1.team === 'player' ? 'slot-team-player' : 'slot-team-enemy'}">
+                           ${p1.id === socket.id ? '★ YOU (' + p1.team.toUpperCase() + ')' : 'PLAYER 1 (' + p1.team.toUpperCase() + ')'}
+                         </span>
+                         <span class="ready-pill ${p1.ready ? 'pill-ready' : 'pill-waiting'}">${p1.ready ? 'READY' : 'NOT READY'}</span>
+                       </div>`
+                    : `<div class="player-slot"><span class="slot-empty">Empty Slot</span></div>`;
+
+                const slot2Html = p2 
+                    ? `<div class="player-slot">
+                         <span class="slot-name ${p2.team === 'player' ? 'slot-team-player' : 'slot-team-enemy'}">
+                           ${p2.id === socket.id ? '★ YOU (' + p2.team.toUpperCase() + ')' : 'PLAYER 2 (' + p2.team.toUpperCase() + ')'}
+                         </span>
+                         <span class="ready-pill ${p2.ready ? 'pill-ready' : 'pill-waiting'}">${p2.ready ? 'READY' : 'NOT READY'}</span>
+                       </div>`
+                    : `<div class="player-slot"><span class="slot-empty">Empty Slot</span></div>`;
+
+                let actionButtonsHtml = '';
+                if (isMyCurrentRoom) {
+                    actionButtonsHtml = `
+                        <button class="btn-ready ${myReadyState ? 'is-ready' : ''}" onclick="toggleReady('${lobby.id}')">
+                            ${myReadyState ? '✓ READY (WAITING)' : 'READY UP'}
+                        </button>
+                        <button class="btn-leave" onclick="leaveRoom()">LEAVE</button>
+                    `;
+                } else {
+                    const disableJoin = isInGame || isFull || currentRoomId !== null;
+                    actionButtonsHtml = `
+                        <button class="btn-join" ${disableJoin ? 'disabled' : ''} onclick="joinRoom('${lobby.id}')">
+                            ${isInGame ? 'IN PROGRESS' : (isFull ? 'ROOM FULL' : 'JOIN ARENA')}
+                        </button>
+                    `;
+                }
+
+                card.innerHTML = `
+                    <div>
+                        <div class="card-top">
+                            <span class="arena-name">${lobby.name}</span>
+                            ${statusBadge}
+                        </div>
+                        <div class="player-slots">
+                            ${slot1Html}
+                            ${slot2Html}
+                        </div>
+                    </div>
+                    <div class="card-actions">
+                        ${actionButtonsHtml}
+                    </div>
+                `;
+
+                grid.appendChild(card);
+            });
+        });
+
+        function joinRoom(roomId) {
+            socket.emit('join_room', roomId);
+        }
+
+        function leaveRoom() {
+            socket.emit('leave_room');
+        }
+
+        function toggleReady(roomId) {
+            socket.emit('toggle_ready', roomId);
+        }
+
+        socket.on('room_joined', (data) => {
+            currentRoomId = data.roomId;
+            myTeam = data.team;
+            myReadyState = false;
+        });
+
+        socket.on('left_room_success', () => {
+            currentRoomId = null;
+            myReadyState = false;
+        });
+
+        socket.on('lobby_error', (msg) => {
+            alert(msg);
+        });
+
+        // 3-Second Countdown transition into the game
+        socket.on('start_match_countdown', (data) => {
+            myTeam = data.team;
+            currentRoomId = data.roomId;
+
+            document.getElementById('lobby-overlay').style.display = 'none';
+            const countdownEl = document.getElementById('match-countdown');
+            const countdownNum = document.getElementById('countdown-num');
+            const roleText = document.getElementById('countdown-role-text');
+            
+            roleText.innerText = `YOU ARE ${myTeam.toUpperCase() === 'PLAYER' ? 'GREEN COMMANDER' : 'RED COMMANDER'}`;
+            countdownEl.style.display = 'flex';
+
+            if (myTeam === 'enemy') {
+                camera.position.set(50, 38, -95);
+                yaw = Math.PI; 
+                camera.quaternion.setFromEuler(new THREE.Euler(pitch, yaw, 0, 'YXZ'));
             }
+
+            let count = 3;
+            countdownNum.innerText = count;
+            const timer = setInterval(() => {
+                count--;
+                if (count > 0) {
+                    countdownNum.innerText = count;
+                } else {
+                    clearInterval(timer);
+                    countdownEl.style.display = 'none';
+                    document.getElementById('resources').style.display = 'flex';
+                    document.getElementById('spawn-sidebar').style.display = 'flex';
+                    document.getElementById('info-container').style.display = 'block';
+                    if (isTouchDevice) {
+                        document.querySelectorAll('.dpad').forEach(el => el.style.display = 'grid');
+                    }
+                    matchStarted = true;
+                }
+            }, 1000);
+        });
+
+        socket.on('opponent_disconnected', () => {
+            alert("Your opponent disconnected from the match!");
+            location.reload();
         });
 
         function handleTouch(e, key, isPressed) {
@@ -277,32 +571,6 @@
             if(e.cancelable) e.preventDefault(); 
             keys[key] = isPressed;
         }
-
-        socket.on('waiting_for_opponent', () => {
-            document.getElementById('match-status-text').innerText = "WAITING FOR OPPONENT TO CONNECT...";
-        });
-
-        socket.on('assigned_role', (data) => {
-            myTeam = data.team; 
-            currentRoomId = data.roomId;
-            
-            if (myTeam === 'enemy') {
-                camera.position.set(50, 38, -95);
-                yaw = Math.PI; 
-                camera.quaternion.setFromEuler(new THREE.Euler(pitch, yaw, 0, 'YXZ'));
-            }
-
-            document.getElementById('match-status-text').innerText = `CONNECTED AS ${myTeam.toUpperCase() === 'PLAYER' ? 'GREEN (PLAYER 1)' : 'RED (PLAYER 2)'}! MATCH STARTING...`;
-            setTimeout(() => {
-                document.getElementById('match-status-screen').style.display = 'none';
-                matchStarted = true;
-            }, 1500);
-        });
-
-        socket.on('opponent_disconnected', () => {
-            alert("Your opponent disconnected!");
-            location.reload();
-        });
 
         let scene, camera, renderer, terrainGeo, terrainMesh;
         let units = [], projs = [], expls = [], selected = null, towers = [], towerHitboxes = [], walls = [], wallHitboxes = [];
@@ -404,7 +672,7 @@
 
             let touchStartX = 0, touchStartY = 0;
             window.addEventListener('touchstart', e => {
-                if (e.target.closest('.dpad') || e.target.closest('#spawn-sidebar') || e.target.closest('#info-container')) {
+                if (e.target.closest('.dpad') || e.target.closest('#spawn-sidebar') || e.target.closest('#info-container') || e.target.closest('#lobby-overlay')) {
                     return;
                 }
                 if(e.touches.length === 1 && e.target.tagName === 'CANVAS') {
@@ -471,7 +739,6 @@
             for(let i=0;i<p.count;i++){let d=Math.pow(p.getX(i)-x,2)+Math.pow(p.getZ(i)-z,2);if(d<mD){mD=d;cl=p.getY(i);}} return cl;
         }
 
-        // --- EXPANSION & REBUILD RULE ---
         function canConnectToTeam(objPos, tm) {
             let baseCenter = tm === 'player' ? playerSpawnPoint : aiSpawnPoint;
             if (objPos.distanceTo(baseCenter) <= 35) return true;
@@ -483,7 +750,6 @@
                 if (w.purchased && w.team === tm && objPos.distanceTo(w.group.position) <= 35) return true;
             }
 
-            // Allow rebuilding within territory zone even if a connecting link was destroyed
             let hasNearbyActiveAlly = false;
             for (let t of towers) {
                 if (t.team === tm && objPos.distanceTo(t.group.position) <= 45) { hasNearbyActiveAlly = true; break; }

@@ -21,32 +21,135 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-let waitingPlayers = [];
+// Initialize 6 fixed rooms
 const rooms = {};
+for (let i = 1; i <= 6; i++) {
+    const roomId = `room_${i}`;
+    rooms[roomId] = {
+        id: roomId,
+        name: `Arena 0${i}`,
+        players: {}, // socketId: { team: 'player'|'enemy', ready: false }
+        status: 'open' // 'open' | 'in_game'
+    };
+}
+
+function getLobbiesSummary() {
+    const list = [];
+    for (const rId in rooms) {
+        const r = rooms[rId];
+        const pKeys = Object.keys(r.players);
+        list.push({
+            id: r.id,
+            name: r.name,
+            playerCount: pKeys.length,
+            status: r.status,
+            players: pKeys.map(id => ({
+                id,
+                ready: r.players[id].ready,
+                team: r.players[id].team
+            }))
+        });
+    }
+    return list;
+}
+
+function broadcastLobbyState() {
+    io.emit('lobbies_update', getLobbiesSummary());
+}
+
+function removePlayerFromCurrentRoom(socket) {
+    for (const roomId in rooms) {
+        const room = rooms[roomId];
+        if (room.players[socket.id]) {
+            delete room.players[socket.id];
+            socket.leave(roomId);
+
+            if (room.status === 'in_game') {
+                io.to(roomId).emit('opponent_disconnected');
+                room.status = 'open';
+                room.players = {};
+            } else {
+                io.to(roomId).emit('room_player_left', { socketId: socket.id });
+            }
+            broadcastLobbyState();
+            break;
+        }
+    }
+}
 
 io.on('connection', (socket) => {
     console.log(`--> Player connected: ${socket.id}`);
 
-    waitingPlayers.push(socket);
-    socket.emit('waiting_for_opponent');
+    // Send initial list of all rooms
+    socket.emit('lobbies_update', getLobbiesSummary());
 
-    if (waitingPlayers.length >= 2) {
-        const p1 = waitingPlayers.shift();
-        const p2 = waitingPlayers.shift();
+    socket.on('join_room', (roomId) => {
+        const room = rooms[roomId];
+        if (!room) return;
 
-        const roomId = `room_${Math.random().toString(36).substring(2, 9)}`;
-        p1.join(roomId);
-        p2.join(roomId);
+        if (room.status === 'in_game') {
+            socket.emit('lobby_error', 'This match is currently in progress!');
+            return;
+        }
 
-        rooms[roomId] = { p1: p1.id, p2: p2.id };
+        const currentPlayers = Object.keys(room.players);
+        if (currentPlayers.length >= 2) {
+            socket.emit('lobby_error', 'This room is already full!');
+            return;
+        }
 
-        io.to(p1.id).emit('assigned_role', { roomId, team: 'player' });
-        io.to(p2.id).emit('assigned_role', { roomId, team: 'enemy' });
+        // Clean up from previous room if any
+        removePlayerFromCurrentRoom(socket);
 
-        console.log(`=== MATCH STARTED === Room: ${roomId} | P1: ${p1.id} vs P2: ${p2.id}`);
-    }
+        const assignedTeam = currentPlayers.length === 0 ? 'player' : (room.players[currentPlayers[0]].team === 'player' ? 'enemy' : 'player');
 
-    // Direct synchronization relays between players in the same room
+        room.players[socket.id] = {
+            team: assignedTeam,
+            ready: false
+        };
+
+        socket.join(roomId);
+        socket.emit('room_joined', {
+            roomId: room.id,
+            name: room.name,
+            team: assignedTeam,
+            players: room.players
+        });
+
+        broadcastLobbyState();
+    });
+
+    socket.on('leave_room', () => {
+        removePlayerFromCurrentRoom(socket);
+        socket.emit('left_room_success');
+        broadcastLobbyState();
+    });
+
+    socket.on('toggle_ready', (roomId) => {
+        const room = rooms[roomId];
+        if (!room || !room.players[socket.id]) return;
+
+        room.players[socket.id].ready = !room.players[socket.id].ready;
+        broadcastLobbyState();
+
+        const playerIds = Object.keys(room.players);
+        const allReady = playerIds.length === 2 && playerIds.every(id => room.players[id].ready);
+
+        if (allReady) {
+            room.status = 'in_game';
+            broadcastLobbyState();
+
+            const p1 = playerIds[0];
+            const p2 = playerIds[1];
+
+            io.to(p1).emit('start_match_countdown', { roomId, team: room.players[p1].team });
+            io.to(p2).emit('start_match_countdown', { roomId, team: room.players[p2].team });
+
+            console.log(`=== MATCH STARTED === Room: ${roomId} | P1: ${p1} vs P2: ${p2}`);
+        }
+    });
+
+    // In-game Relay Events
     socket.on('spawn_unit', (data) => {
         socket.to(data.roomId).emit('spawn_unit', data);
     });
@@ -69,14 +172,7 @@ io.on('connection', (socket) => {
 
     socket.on('disconnect', () => {
         console.log(`<-- Player disconnected: ${socket.id}`);
-        waitingPlayers = waitingPlayers.filter(s => s.id !== socket.id);
-
-        for (const roomId in rooms) {
-            if (rooms[roomId].p1 === socket.id || rooms[roomId].p2 === socket.id) {
-                io.to(roomId).emit('opponent_disconnected');
-                delete rooms[roomId];
-            }
-        }
+        removePlayerFromCurrentRoom(socket);
     });
 });
 

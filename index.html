@@ -384,7 +384,7 @@
         <div id="hud">
             <b>ONLINE 1v1 STRATEGY</b> (+15 gold/s)<br><br>
             <b>🏰 TERRITORY & REBUILD RULE:</b><br>
-            • Expand outward from your base!<br>
+            • Expand outward strictly attached to your base/territory!<br>
             • Rebuild destroyed plots inside your claimed sector.<br><br>
             <b>📱 MOBILE CONTROLS:</b><br>
             • <b>Spawn Troops:</b> Tap left sidebar icons<br>
@@ -394,7 +394,8 @@
             • <b>Spawn Troops:</b> Press [1], [2], or [3]<br>
             • <b>Camera Move:</b> WASD keys<br>
             • <b>Camera Look:</b> Hold RMB & drag mouse<br>
-            • <b>Select & Move Unit:</b> Left-Click unit, then Left-Click ground
+            • <b>Select & Move Unit:</b> Left-Click unit, then Left-Click ground<br>
+            • <b>Upgrade Unit:</b> Click selected unit again
         </div>
     </div>
 
@@ -436,7 +437,6 @@
                 if (isInGame) statusBadge = `<span class="arena-badge badge-ingame">In Battle</span>`;
                 else if (isFull) statusBadge = `<span class="arena-badge badge-ready">Full</span>`;
 
-                // Slot 1 & Slot 2 Display
                 const p1 = lobby.players[0];
                 const p2 = lobby.players[1];
 
@@ -741,25 +741,27 @@
 
         function canConnectToTeam(objPos, tm) {
             let baseCenter = tm === 'player' ? playerSpawnPoint : aiSpawnPoint;
-            if (objPos.distanceTo(baseCenter) <= 35) return true;
+            
+            // Always allow building right next to your home base
+            if (objPos.distanceTo(baseCenter) <= 32) return true;
 
+            // Strict contiguous check: must be adjacent to an existing friendly tower or wall
+            let hasAdjacentFriendly = false;
             for (let t of towers) {
-                if (t.purchased && t.team === tm && objPos.distanceTo(t.group.position) <= 35) return true;
-            }
-            for (let w of walls) {
-                if (w.purchased && w.team === tm && objPos.distanceTo(w.group.position) <= 35) return true;
-            }
-
-            let hasNearbyActiveAlly = false;
-            for (let t of towers) {
-                if (t.team === tm && objPos.distanceTo(t.group.position) <= 45) { hasNearbyActiveAlly = true; break; }
-            }
-            if (!hasNearbyActiveAlly) {
-                for (let w of walls) {
-                    if (w.team === tm && objPos.distanceTo(w.group.position) <= 45) { hasNearbyActiveAlly = true; break; }
+                if (t.purchased && t.team === tm && objPos.distanceTo(t.group.position) <= 32) {
+                    hasAdjacentFriendly = true;
+                    break;
                 }
             }
-            return hasNearbyActiveAlly;
+            if (!hasAdjacentFriendly) {
+                for (let w of walls) {
+                    if (w.purchased && w.team === tm && objPos.distanceTo(w.group.position) <= 32) {
+                        hasAdjacentFriendly = true;
+                        break;
+                    }
+                }
+            }
+            return hasAdjacentFriendly;
         }
 
         function makeHB(w,h,gr=false) {
@@ -800,7 +802,35 @@
             m.position.y=0.15; g.add(m); let hp=makeHB(14,3,true); hp.position.y=0.2; g.add(hp); scene.add(g);
             return {type:'base',team:tm,hp:HP_M.base,maxHp:HP_M.base,hpBar:hp,position:new THREE.Vector3(x,y,z)};
         }
-        function endG(w) { if(gameOverActive)return; gameOverActive=true; let s=document.getElementById('game-over-screen'); s.innerText=w===myTeam?"VICTORY":"DEFEAT"; s.style.display="flex"; setTimeout(()=>location.reload(),4000); }
+        function endG(w) { 
+            if(gameOverActive) return; 
+            gameOverActive = true; 
+
+            // Smooth Victory/Defeat Fireworks/Explosions
+            for (let i = 0; i < 12; i++) {
+                setTimeout(() => {
+                    let rx = (Math.random() - 0.5) * wWidth;
+                    let rz = (Math.random() - 0.5) * wDepth;
+                    let ex = new THREE.Mesh(
+                        new THREE.RingGeometry(0.1, 4 + Math.random() * 4, 12).rotateX(-Math.PI / 2),
+                        new THREE.MeshBasicMaterial({ color: w === myTeam ? 0x00ffcc : 0xff3300, side: 2, transparent: true })
+                    );
+                    ex.position.set(rx, getH(rx, rz) + 0.2, rz);
+                    scene.add(ex);
+                    expls.push({ m: ex, t: 0.6, type: 'ring' });
+                }, i * 200);
+            }
+
+            units.forEach(u => scene.remove(u.mesh));
+            units = [];
+            projs.forEach(p => scene.remove(p.mesh));
+            projs = [];
+
+            let s = document.getElementById('game-over-screen'); 
+            s.innerText = w === myTeam ? "VICTORY" : "DEFEAT"; 
+            s.style.display = "flex"; 
+            setTimeout(() => location.reload(), 4500); 
+        }
         function dmg(e,a) {
             e.hp-=a; upHB(e.hpBar,e.hp,e.maxHp); if(e.hpBarBack)upHB(e.hpBarBack,e.hp,e.maxHp);
             if(e.type==='base'&&e.hp<=0){ endG(e.team); return; }
@@ -925,6 +955,17 @@
             }
         });
 
+        socket.on('upgrade_unit', (data) => {
+            let u = units.find(item => item.id === data.unitId);
+            if(u) {
+                u.level = data.level;
+                u.maxHp = HP_M[u.type] * TR_UP[u.level].mH;
+                u.hp = u.maxHp;
+                upHB(u.hpBar, u.hp, u.maxHp);
+                upUnitLevelBillboard(u);
+            }
+        });
+
         socket.on('toggle_gate', (data) => {
             let w = walls.find(item => item.x === data.x && item.z === data.z && item.rotationY === data.rotationY);
             if (w) { w.isOpen = data.isOpen; w.targetY = w.isOpen ? -1.4 : 1.5; upCost(w); }
@@ -999,8 +1040,26 @@
             if(clU.length > 0) {
                 let u = clU[0].object.parent.userData.ref || clU[0].object.userData.ref;
                 if(u && u.team === myTeam) {
-                    if(selected === u) { selected.ring.visible = false; selected.rangeRing.material.opacity = 0; selected = null; }
-                    else {
+                    if(selected === u) {
+                        // Double-click/re-click selected unit to UPGRADE it!
+                        if(u.level < 5) {
+                            let upgradeCost = TR_UP[u.level + 1].cost;
+                            if(gold >= upgradeCost) {
+                                gold -= upgradeCost;
+                                document.getElementById('gold-val').innerText = gold;
+                                
+                                u.level++;
+                                u.maxHp = HP_M[u.type] * TR_UP[u.level].mH;
+                                u.hp = u.maxHp;
+                                upHB(u.hpBar, u.hp, u.maxHp);
+                                upUnitLevelBillboard(u);
+                                
+                                if(currentRoomId) {
+                                    socket.emit('upgrade_unit', { roomId: currentRoomId, unitId: u.id, level: u.level });
+                                }
+                            }
+                        }
+                    } else {
                         if(selected) { selected.ring.visible = false; selected.rangeRing.material.opacity = 0; }
                         selected = u; u.ring.visible = true; u.rangeRing.material.opacity = 0.5;
                     }

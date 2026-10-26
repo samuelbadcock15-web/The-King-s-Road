@@ -166,6 +166,10 @@ io.on('connection', (socket) => {
         socket.to(data.roomId).emit('upgrade_structure', data);
     });
 
+    socket.on('upgrade_unit', (data) => {
+        socket.to(data.roomId).emit('upgrade_unit', data);
+    });
+
     socket.on('toggle_gate', (data) => {
         socket.to(data.roomId).emit('toggle_gate', data);
     });

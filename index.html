@@ -727,7 +727,6 @@
             });
             document.addEventListener('keyup',e=>keys[e.code]=false);
             
-            // Instant touch & click handling with event propagation stop for game actions
             window.addEventListener('pointerdown', e => {
                 if(e.target.tagName !== 'CANVAS') return;
                 mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
@@ -1004,6 +1003,9 @@
                 let w = walls.find(item => item.x === data.x && item.z === data.z && item.rotationY === data.rotationY);
                 if (w) { w.purchaseCount = data.purchaseCount; ownWall(w, data.team); }
             }
+            // Sync opponent gold expenditure display
+            enemyGold -= data.cost;
+            document.getElementById('ai-gold-val').innerText = Math.floor(enemyGold);
         });
 
         socket.on('upgrade_structure', (data) => {
@@ -1014,6 +1016,8 @@
                 let w = walls.find(item => item.x === data.x && item.z === data.z && item.rotationY === data.rotationY);
                 if (w) { upStruct(w); }
             }
+            enemyGold -= data.cost;
+            document.getElementById('ai-gold-val').innerText = Math.floor(enemyGold);
         });
 
         socket.on('upgrade_unit', (data) => {
@@ -1152,10 +1156,11 @@
                 }
                 if(!t.purchased && gold >= cost) {
                     gold -= cost; document.getElementById('gold-val').innerText = gold; ownTower(t, myTeam);
-                    if(currentRoomId) socket.emit('buy_structure', { roomId: currentRoomId, type: 'tower', x: t.x, z: t.z, team: myTeam, purchaseCount: t.purchaseCount });
+                    if(currentRoomId) socket.emit('buy_structure', { roomId: currentRoomId, type: 'tower', x: t.x, z: t.z, team: myTeam, purchaseCount: t.purchaseCount, cost: cost });
                 } else if(t.team === myTeam && t.level < 5 && gold >= T_UP[t.level+1].cost) {
-                    gold -= T_UP[t.level+1].cost; document.getElementById('gold-val').innerText = gold; upStruct(t);
-                    if(currentRoomId) socket.emit('upgrade_structure', { roomId: currentRoomId, type: 'tower', x: t.x, z: t.z });
+                    let upCostVal = T_UP[t.level+1].cost;
+                    gold -= upCostVal; document.getElementById('gold-val').innerText = gold; upStruct(t);
+                    if(currentRoomId) socket.emit('upgrade_structure', { roomId: currentRoomId, type: 'tower', x: t.x, z: t.z, cost: upCostVal });
                 }
             } else if(wH.length > 0) {
                 let w = wH[0].object.userData.wallRef;
@@ -1165,13 +1170,13 @@
                 }
                 if(!w.purchased && gold >= cost) {
                     gold -= cost; document.getElementById('gold-val').innerText = gold; ownWall(w, myTeam);
-                    if(currentRoomId) socket.emit('buy_structure', { roomId: currentRoomId, type: 'wall', x: w.x, z: w.z, rotationY: w.rotationY, team: myTeam, purchaseCount: w.purchaseCount });
+                    if(currentRoomId) socket.emit('buy_structure', { roomId: currentRoomId, type: 'wall', x: w.x, z: w.z, rotationY: w.rotationY, team: myTeam, purchaseCount: w.purchaseCount, cost: cost });
                 } else if(w.team === myTeam) {
                     if(w.level < 4 && gold >= W_UP[w.level+1].cost) { 
-                        gold -= W_UP[w.level+1].cost; document.getElementById('gold-val').innerText = gold; upStruct(w); 
-                        if(currentRoomId) socket.emit('upgrade_structure', { roomId: currentRoomId, type: 'wall', x: w.x, z: w.z, rotationY: w.rotationY });
+                        let upCostVal = W_UP[w.level+1].cost;
+                        gold -= upCostVal; document.getElementById('gold-val').innerText = gold; upStruct(w); 
+                        if(currentRoomId) socket.emit('upgrade_structure', { roomId: currentRoomId, type: 'wall', x: w.x, z: w.z, rotationY: w.rotationY, cost: upCostVal });
                     } else if(w.level >= 4) { 
-                        // Immediate local toggle for snappy response
                         w.isOpen = !w.isOpen; 
                         w.targetY = w.isOpen ? -1.4 : 1.5; 
                         upCost(w); 
@@ -1209,7 +1214,6 @@
                 else if(e.type==='ring'){let f=(0.3-e.t)*12;e.m.scale.set(f,f,f);e.m.material.opacity=e.t/0.3;} else if(e.type==='laser'){e.m.material.opacity=e.t/0.15;}
             }
 
-            // Towers target anything in range
             towers.forEach(t => {
                 if(!t.purchased || t.team === 'neutral') return;
                 t.attackCD -= delta;

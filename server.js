@@ -98,7 +98,6 @@ io.on('connection', (socket) => {
             return;
         }
 
-        // Clean up from previous room if any
         removePlayerFromCurrentRoom(socket);
 
         const assignedTeam = currentPlayers.length === 0 ? 'player' : (room.players[currentPlayers[0]].team === 'player' ? 'enemy' : 'player');
@@ -176,6 +175,20 @@ io.on('connection', (socket) => {
 
     socket.on('unit_attack', (data) => {
         socket.to(data.roomId).emit('unit_attack', data);
+    });
+
+    socket.on('base_attack', (data) => {
+        socket.to(data.roomId).emit('base_attack', data);
+    });
+
+    socket.on('game_over_trigger', (data) => {
+        const room = rooms[data.roomId];
+        if (room) {
+            room.status = 'open';
+            room.players = {};
+        }
+        io.to(data.roomId).emit('game_over_sync', data);
+        broadcastLobbyState();
     });
 
     socket.on('disconnect', () => {

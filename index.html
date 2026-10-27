@@ -336,7 +336,9 @@
             align-items: center; 
             color: #fff; 
             z-index: 700; 
-            font-size: clamp(24px, 6vw, 36px); 
+            font-size: clamp(24px, 6vw, 48px); 
+            font-weight: 900;
+            letter-spacing: 3px;
             text-align: center; 
         }
     </style>
@@ -423,7 +425,7 @@
     <div id="game-over-screen"></div>
 
     <script>
-        const socket = io("https://the-king-s-road-1.onrender.com", {
+        const socket = io({
             transports: ['websocket', 'polling'],
             secure: true,
             reconnection: true,
@@ -845,7 +847,8 @@
             m.position.y=0.15; g.add(m); let hp=makeHB(14,3,true); hp.position.y=0.2; g.add(hp); scene.add(g);
             return {type:'base',team:tm,hp:HP_M.base,maxHp:HP_M.base,hpBar:hp,position:new THREE.Vector3(x,y,z)};
         }
-        function endG(w) { 
+
+        function endG(winnerTeam) { 
             if(gameOverActive) return; 
             gameOverActive = true; 
 
@@ -855,7 +858,7 @@
                     let rz = (Math.random() - 0.5) * wDepth;
                     let ex = new THREE.Mesh(
                         new THREE.RingGeometry(0.1, 4 + Math.random() * 4, 12).rotateX(-Math.PI / 2),
-                        new THREE.MeshBasicMaterial({ color: w === myTeam ? 0x00ffcc : 0xff3300, side: 2, transparent: true })
+                        new THREE.MeshBasicMaterial({ color: winnerTeam === myTeam ? 0x00ffcc : 0xff3300, side: 2, transparent: true })
                     );
                     ex.position.set(rx, getH(rx, rz) + 0.2, rz);
                     scene.add(ex);
@@ -869,7 +872,8 @@
             projs = [];
 
             let s = document.getElementById('game-over-screen'); 
-            s.innerText = w === myTeam ? "VICTORY" : "DEFEAT"; 
+            s.innerText = winnerTeam === myTeam ? "VICTORY" : "DEFEAT"; 
+            s.style.color = winnerTeam === myTeam ? "#00ffcc" : "#ff3366";
             s.style.display = "flex"; 
             setTimeout(() => location.reload(), 4500); 
         }
@@ -881,7 +885,14 @@
 
         function dmg(e,a) {
             e.hp-=a; upHB(e.hpBar,e.hp,e.maxHp); if(e.hpBarBack)upHB(e.hpBarBack,e.hp,e.maxHp);
-            if(e.type==='base'&&e.hp<=0){ endG(e.team); return; }
+            if(e.type==='base'&&e.hp<=0){ 
+                let winner = (e.team === 'player') ? 'enemy' : 'player';
+                if(currentRoomId) {
+                    socket.emit('game_over_trigger', { roomId: currentRoomId, winnerTeam: winner });
+                }
+                endG(winner); 
+                return; 
+            }
             if(e.hp<=0) {
                 if(e.type==='tower'||e.type==='wall') {
                     e.purchaseCount++; e.purchased=false; e.level=1; e.team='neutral'; e.maxHp=HP_M[e.type]; e.hp=e.maxHp; e.hpBar.visible=false; if(e.hpBarBack)e.hpBarBack.visible=false;
@@ -1003,7 +1014,6 @@
                 let w = walls.find(item => item.x === data.x && item.z === data.z && item.rotationY === data.rotationY);
                 if (w) { w.purchaseCount = data.purchaseCount; ownWall(w, data.team); }
             }
-            // Sync opponent gold expenditure display
             enemyGold -= data.cost;
             document.getElementById('ai-gold-val').innerText = Math.floor(enemyGold);
         });
@@ -1047,6 +1057,15 @@
             }
         });
 
+        socket.on('base_attack', (data) => {
+            let targetBase = data.targetTeam === 'player' ? playerBase : aiBase;
+            dmg(targetBase, data.damage);
+        });
+
+        socket.on('game_over_sync', (data) => {
+            endG(data.winnerTeam);
+        });
+
         function getLOS(orig,targ,tm, targetObj = null) {
             let d=new THREE.Vector3().subVectors(targ,orig), dst=d.length(); d.normalize(); let ray=new THREE.Ray(orig,d), cObstacle=null, cD=dst;
             for(let w of walls){
@@ -1087,7 +1106,14 @@
             towers.forEach(t=>{if(t.purchased&&t.team!==tm&&t.group.position.distanceTo(pt)<=rad+2)dmg(t,d);});
             walls.forEach(w=>{if(w.purchased&&w.team!==tm&&w.group.position.distanceTo(pt)<=rad+2)dmg(w,d);});
             units.forEach(u=>{if(u.team!==tm&&u.mesh.position.distanceTo(pt)<=rad)dmg(u,d);});
-            if(playerBase.position.distanceTo(pt)<=rad+8&&tm!=='player')dmg(playerBase,d); if(aiBase.position.distanceTo(pt)<=rad+8&&tm!=='enemy')dmg(aiBase,d);
+            if(playerBase.position.distanceTo(pt)<=rad+8&&tm!=='player') {
+                dmg(playerBase,d);
+                if(currentRoomId) socket.emit('base_attack', { roomId: currentRoomId, targetTeam: 'player', damage: d });
+            }
+            if(aiBase.position.distanceTo(pt)<=rad+8&&tm!=='enemy') {
+                dmg(aiBase,d);
+                if(currentRoomId) socket.emit('base_attack', { roomId: currentRoomId, targetTeam: 'enemy', damage: d });
+            }
         }
 
         function chkW(u,nX,nZ) {
@@ -1279,6 +1305,18 @@
                                 if(d < bestDist && d <= rng) { bestDist = d; bestTarget = {type: 'wall', obj: w, pos: w.group.position.clone().add(new THREE.Vector3(0, 2, 0))}; }
                             }
                         });
+
+                        // Base Targeting
+                        let oppBase = targetTeam === 'player' ? playerBase : aiBase;
+                        let dBase = u.mesh.position.distanceTo(oppBase.position);
+                        if(dBase < bestDist && dBase <= rng) {
+                            bestDist = dBase;
+                            bestTarget = { 
+                                type: 'base', 
+                                obj: oppBase, 
+                                pos: oppBase.position.clone().add(new THREE.Vector3(0, 1, 0)) 
+                            };
+                        }
                     }
 
                     if(bestTarget) {
@@ -1303,6 +1341,11 @@
                                     applyDamageToTarget(bestTarget.obj, dmgV);
                                     if(currentRoomId && u.team === myTeam) {
                                         socket.emit('unit_attack', { roomId: currentRoomId, targetUnitId: bestTarget.obj.id, damage: dmgV });
+                                    }
+                                } else if(bestTarget.type === 'base') {
+                                    dmg(bestTarget.obj, dmgV);
+                                    if(currentRoomId && u.team === myTeam) {
+                                        socket.emit('base_attack', { roomId: currentRoomId, targetTeam: bestTarget.obj.team, damage: dmgV });
                                     }
                                 } else {
                                     dmg(bestTarget.obj, dmgV);

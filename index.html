@@ -232,21 +232,23 @@
             z-index: 250; 
         }
 
-        /* DESELECT BUTTON (IN SIDEBAR) */
+        /* --- DESELECT BUTTON: INVERTED STYLING --- */
+        /* DEFAULT STATE: Faint, dim, dark grey, un-clickable feel */
         #deselect-btn {
             width: clamp(55px, 14vw, 80px);
             height: clamp(55px, 14vw, 80px);
-            background: rgba(20, 24, 35, 0.85);
-            border: 2px solid #3a4256;
+            background: rgba(16, 20, 28, 0.45);
+            border: 2px dashed rgba(255, 255, 255, 0.15);
             border-radius: 14px;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            color: #555e75;
+            color: #556075;
             cursor: default;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.6);
-            transition: all 0.2s ease;
+            box-shadow: none;
+            opacity: 0.4;
+            transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
             user-select: none;
             -webkit-user-select: none;
             box-sizing: border-box;
@@ -265,17 +267,20 @@
             letter-spacing: 0.5px;
         }
 
-        /* ACTIVE / HIGHLIGHT STATE WHEN UNIT SELECTED */
+        /* ACTIVE STATE: High-contrast, bold, vibrant neon cyan tile */
         #deselect-btn.active {
-            background: rgba(0, 255, 204, 0.15);
-            border-color: #00ffcc;
-            color: #00ffcc;
+            opacity: 1;
+            background: #00ffcc;
+            border: 2px solid #ffffff;
+            color: #051419;
             cursor: pointer;
-            box-shadow: 0 0 16px rgba(0, 255, 204, 0.45);
+            box-shadow: 0 0 20px rgba(0, 255, 204, 0.75), 0 4px 14px rgba(0,0,0,0.6);
+            transform: scale(1.02);
         }
         #deselect-btn.active:hover {
-            background: rgba(0, 255, 204, 0.25);
-            transform: scale(1.04);
+            background: #33ffdd;
+            box-shadow: 0 0 25px rgba(0, 255, 204, 0.95);
+            transform: scale(1.06);
         }
         #deselect-btn.active:active {
             transform: scale(0.92);
@@ -433,7 +438,7 @@
     </div>
     
     <div id="spawn-sidebar">
-        <!-- DESELECT TILE IN SIDEBAR -->
+        <!-- INVERTED DESELECT BUTTON -->
         <button id="deselect-btn" onclick="clearSelection()">
             <span>✕</span>
             <span>DESELECT</span>
@@ -880,14 +885,12 @@
 
             // Phase 2: Territorial Expansion (Base is fully intact)
             if (isTower) {
-                // Towers strictly require a directly touching purchased friendly wall
                 let touchesWall = walls.some(w => w.purchased && w.team === tm && objPos.distanceTo(w.group.position) <= 16.5);
                 if (!touchesWall) {
                     return { ok: false, reason: "⚠️ Towers can only be built directly touching an owned wall!" };
                 }
                 return { ok: true };
             } else {
-                // Walls must connect edge-to-edge with an existing friendly structure
                 let hasConnection = false;
                 for (let t of towers) {
                     if (t.purchased && t.team === tm && objPos.distanceTo(t.group.position) <= 16.5) {
@@ -911,14 +914,32 @@
         }
 
         function makeHB(w,h,gr=false) {
-            let c=document.createElement('canvas');c.width=128;c.height=32;let ctx=c.getContext('2d');ctx.fillStyle='#222';ctx.fillRect(0,0,128,32);ctx.fillStyle='#0f0';ctx.fillRect(4,4,120,24);
+            let c=document.createElement('canvas');c.width=128;c.height=32;let ctx=c.getContext('2d');
+            ctx.fillStyle='#111';ctx.fillRect(0,0,128,32);
+            ctx.fillStyle='#00ff88';ctx.fillRect(4,4,120,24);
             let t=new THREE.CanvasTexture(c), m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:t,side:2,transparent:true}));
             if(gr)m.rotateX(-Math.PI/2); m.userData={c,ctx,t}; return m;
         }
+
+        // Clean Canvas Health Bar Clearing & Full 0-to-100% Depletion
         function upHB(m,cur,max) {
-            if(!m||!m.userData.ctx)return; let ctx=m.userData.ctx, pct=Math.max(0,cur/max);
-            ctx.fillStyle='#222';ctx.fillRect(0,0,128,32);ctx.fillStyle=pct>.4?'#0f0':(pct>.15?'#fa0':'#f00');ctx.fillRect(4,4,Math.floor(120*pct),24);m.userData.t.needsUpdate=true;
+            if(!m||!m.userData.ctx)return; 
+            let ctx=m.userData.ctx;
+            let pct = Math.max(0, Math.min(1, cur / max));
+            
+            // Clear entire frame so residual health graphics never remain
+            ctx.clearRect(0,0,128,32);
+            ctx.fillStyle='#111111';
+            ctx.fillRect(0,0,128,32);
+            
+            if (pct > 0) {
+                ctx.fillStyle = pct > 0.4 ? '#00ff88' : (pct > 0.15 ? '#ffaa00' : '#ff2244');
+                let barW = Math.max(1, Math.floor(120 * pct));
+                ctx.fillRect(4, 4, barW, 24);
+            }
+            m.userData.t.needsUpdate = true;
         }
+
         function makeBB(txt,col) {
             let c=document.createElement('canvas');c.width=256;c.height=128;let ctx=c.getContext('2d');
             ctx.font='bold 54px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
@@ -945,7 +966,8 @@
         function makeBase(x,z,tm) {
             let y=getH(x,z), g=new THREE.Group(); g.position.set(x,y,z);
             let m=new THREE.Mesh(new THREE.PlaneGeometry(16,16).rotateX(-Math.PI/2),new THREE.MeshStandardMaterial({map:tm==='player'?pTex:aTex}));
-            m.position.y=0.15; g.add(m); let hp=makeHB(14,3,true); hp.position.y=0.2; g.add(hp); scene.add(g);
+            m.position.y=0.15; g.add(m); 
+            let hp=makeHB(14,3,true); hp.position.y=0.2; g.add(hp); scene.add(g);
             return {type:'base',team:tm,hp:HP_M.base,maxHp:HP_M.base,hpBar:hp,position:new THREE.Vector3(x,y,z)};
         }
 
@@ -985,8 +1007,12 @@
         }
 
         function dmg(e,a) {
-            e.hp-=a; upHB(e.hpBar,e.hp,e.maxHp); if(e.hpBarBack)upHB(e.hpBarBack,e.hp,e.maxHp);
-            if(e.type==='base'&&e.hp<=0){ 
+            e.hp = Math.max(0, e.hp - a); 
+            upHB(e.hpBar, e.hp, e.maxHp); 
+            if(e.hpBarBack) upHB(e.hpBarBack, e.hp, e.maxHp);
+
+            if(e.type==='base' && e.hp <= 0){ 
+                upHB(e.hpBar, 0, e.maxHp); // Guarantee clean 0 empty health bar
                 let winner = (e.team === 'player') ? 'enemy' : 'player';
                 if(currentRoomId) {
                     socket.emit('game_over_trigger', { roomId: currentRoomId, winnerTeam: winner });
@@ -994,14 +1020,24 @@
                 endG(winner); 
                 return; 
             }
-            if(e.hp<=0) {
+
+            if(e.hp <= 0) {
                 if(e.type==='tower'||e.type==='wall') {
                     e.purchaseCount++; e.purchased=false; e.level=1; e.team='neutral'; e.maxHp=HP_M[e.type]; e.hp=e.maxHp; e.hpBar.visible=false; if(e.hpBarBack)e.hpBarBack.visible=false;
                     if(e.type==='tower'){ e.tD=35; e.fR=1.2; e.radRing.material.color.setHex(0x4477aa); } else { e.isOpen=false; e.targetY=1.5; e.gateMesh.position.y=1.5; }
                     let mat=new THREE.MeshStandardMaterial({color:e.type==='tower'?0x4477aa:0xaa6644,transparent:true,opacity:0.2}); e.components.forEach(c=>c.material=mat); upCost(e);
-                } else { scene.remove(e.mesh); if(e.shadow)scene.remove(e.shadow); units=units.filter(u=>u!==e); if(selected===e) { selected=null; updateDeselectButtonState(); } }
+                } else { 
+                    scene.remove(e.mesh); 
+                    if(e.shadow) scene.remove(e.shadow); 
+                    units = units.filter(u => u !== e); 
+                    if(selected === e) { 
+                        selected = null; 
+                        updateDeselectButtonState(); 
+                    } 
+                }
             }
         }
+
         function makeTower(x,y,z) {
             let g=new THREE.Group(); g.position.set(x,y,z); let mat=new THREE.MeshStandardMaterial({color:0x4477aa,transparent:true,opacity:0.2});
             let b=new THREE.Mesh(new THREE.CylinderGeometry(2,2.5,1.5,8),mat); b.position.y=0.75; g.add(b);
@@ -1279,7 +1315,6 @@
                 let t = tH[0].object.userData.towerRef;
                 let cost = COSTS.tower * Math.pow(2, t.purchaseCount);
                 if(!t.purchased) {
-                    // Check placement validity for tower
                     let check = checkPlacementValidity(t, myTeam, true);
                     if(!check.ok) {
                         showNotification(check.reason);
@@ -1298,7 +1333,6 @@
                 let w = wH[0].object.userData.wallRef;
                 let cost = COSTS.wall * Math.pow(2, w.purchaseCount);
                 if(!w.purchased) {
-                    // Check placement validity for wall
                     let check = checkPlacementValidity(w, myTeam, false);
                     if(!check.ok) {
                         showNotification(check.reason);

@@ -176,7 +176,18 @@ io.on('connection', (socket) => {
         socket.to(data.roomId).emit('unit_attack', data);
     });
 
-    // Synchronize exact base HP state
+    socket.on('structure_attack', (data) => {
+        socket.to(data.roomId).emit('structure_attack', data);
+    });
+
+    socket.on('unit_killed', (data) => {
+        socket.to(data.roomId).emit('unit_killed', data);
+    });
+
+    socket.on('structure_destroyed', (data) => {
+        socket.to(data.roomId).emit('structure_destroyed', data);
+    });
+
     socket.on('base_attack', (data) => {
         socket.to(data.roomId).emit('base_attack', data);
     });

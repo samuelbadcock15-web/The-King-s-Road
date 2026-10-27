@@ -383,9 +383,9 @@
         <div id="info-btn" onclick="let h=document.getElementById('hud'); h.style.display=h.style.display==='block'?'none':'block';">i</div>
         <div id="hud">
             <b>ONLINE 1v1 STRATEGY</b> (+15 gold/s)<br><br>
-            <b>🏰 TERRITORY & REBUILD RULE:</b><br>
-            • Expand outward strictly attached to your base/territory!<br>
-            • Rebuild destroyed plots inside your claimed sector.<br><br>
+            <b>🏰 TERRITORY & BUILD RULE:</b><br>
+            • Complete all 4 walls around your starting base first!<br>
+            • Then snake outward strictly attached to your territory.<br><br>
             <b>📱 MOBILE CONTROLS:</b><br>
             • <b>Spawn Troops:</b> Tap left sidebar icons<br>
             • <b>Camera Pan:</b> Use left or right D-Pad<br>
@@ -742,28 +742,31 @@
         function canConnectToTeam(objPos, tm) {
             let baseCenter = tm === 'player' ? playerSpawnPoint : aiSpawnPoint;
             
-            // 1. Must be close enough to your home base to start expanding
-            if (objPos.distanceTo(baseCenter) <= 35) return true;
+            // 1. Find the 4 walls immediately surrounding your starting home base square
+            let homeSquareWalls = walls.filter(w => w.group.position.distanceTo(baseCenter) <= 32);
 
-            // 2. Strict contiguous check: must be adjacent to an already owned friendly tower or wall
-            let hasConnectedStructure = false;
+            // 2. Check if all 4 home base square walls are fully purchased and owned by you
+            let homeSquareComplete = homeSquareWalls.length > 0 && homeSquareWalls.every(w => w.purchased && w.team === tm);
 
-            for (let t of towers) {
-                if (t.purchased && t.team === tm) {
-                    if (objPos.distanceTo(t.group.position) <= 32) {
-                        hasConnectedStructure = true;
-                        break;
-                    }
-                }
+            // 3. If your home square is NOT complete, you can ONLY buy the remaining unpurchased walls of your home square
+            if (!homeSquareComplete) {
+                let isPartOfHomeSquare = homeSquareWalls.some(w => w.x === objPos.x && w.z === objPos.z);
+                return isPartOfHomeSquare;
             }
 
+            // 4. Once home square IS complete, allow snaking outward strictly adjacent to any already owned structure
+            let hasConnectedStructure = false;
+            for (let t of towers) {
+                if (t.purchased && t.team === tm && objPos.distanceTo(t.group.position) <= 32) {
+                    hasConnectedStructure = true;
+                    break;
+                }
+            }
             if (!hasConnectedStructure) {
                 for (let w of walls) {
-                    if (w.purchased && w.team === tm) {
-                        if (objPos.distanceTo(w.group.position) <= 32) {
-                            hasConnectedStructure = true;
-                            break;
-                        }
+                    if (w.purchased && w.team === tm && objPos.distanceTo(w.group.position) <= 32) {
+                        hasConnectedStructure = true;
+                        break;
                     }
                 }
             }

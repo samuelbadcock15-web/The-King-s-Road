@@ -196,6 +196,10 @@ io.on('connection', (socket) => {
         socket.to(data.roomId).emit('tank_shot_fx', data);
     });
 
+    socket.on('laser_shot_fx', (data) => {
+        socket.to(data.roomId).emit('laser_shot_fx', data);
+    });
+
     socket.on('game_over_trigger', (data) => {
         const room = rooms[data.roomId];
         if (room) {

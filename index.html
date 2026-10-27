@@ -385,7 +385,7 @@
             <b>ONLINE 1v1 STRATEGY</b> (+15 gold/s)<br><br>
             <b>🏰 TERRITORY & BUILD RULE:</b><br>
             • Complete all 4 walls around your starting base first!<br>
-            • Then snake outward strictly attached to your territory.<br><br>
+            • Snake outward strictly attached edge-to-edge.<br><br>
             <b>📱 MOBILE CONTROLS:</b><br>
             • <b>Spawn Troops:</b> Tap left sidebar icons<br>
             • <b>Camera Pan:</b> Use left or right D-Pad<br>
@@ -754,24 +754,24 @@
                 return isPartOfHomeSquare;
             }
 
-            // 4. Once home square IS complete, allow snaking outward strictly adjacent to any already owned structure
-            let hasConnectedStructure = false;
+            // 4. Once home square IS complete, enforce strict physical attachment (<= 22 units) to already owned structures
+            let hasDirectlyConnectedStructure = false;
             for (let t of towers) {
                 if (t.purchased && t.team === tm && objPos.distanceTo(t.group.position) <= 32) {
-                    hasConnectedStructure = true;
+                    hasDirectlyConnectedStructure = true;
                     break;
                 }
             }
-            if (!hasConnectedStructure) {
+            if (!hasDirectlyConnectedStructure) {
                 for (let w of walls) {
-                    if (w.purchased && w.team === tm && objPos.distanceTo(w.group.position) <= 32) {
-                        hasConnectedStructure = true;
+                    if (w.purchased && w.team === tm && objPos.distanceTo(w.group.position) <= 22) {
+                        hasDirectlyConnectedStructure = true;
                         break;
                     }
                 }
             }
 
-            return hasConnectedStructure;
+            return hasDirectlyConnectedStructure;
         }
 
         function makeHB(w,h,gr=false) {

@@ -1369,7 +1369,7 @@
                 u.mesh.position.y=THREE.MathUtils.lerp(u.mesh.position.y, targetYPos, 5*delta);
             });
 
-            velocity.multiplyScalar(1 - 10 * delta);
+            velocity.multiplyScalar(1 - 14 * delta);
             let f = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
             let r = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
             f.y = r.y = 0; f.normalize(); r.normalize();

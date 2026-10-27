@@ -742,26 +742,33 @@
         function canConnectToTeam(objPos, tm) {
             let baseCenter = tm === 'player' ? playerSpawnPoint : aiSpawnPoint;
             
-            // Always allow building right next to your home base
-            if (objPos.distanceTo(baseCenter) <= 32) return true;
+            // 1. Must be close enough to your home base to start expanding
+            if (objPos.distanceTo(baseCenter) <= 35) return true;
 
-            // Strict contiguous check: must be adjacent to an existing friendly tower or wall
-            let hasAdjacentFriendly = false;
+            // 2. Strict contiguous check: must be adjacent to an already owned friendly tower or wall
+            let hasConnectedStructure = false;
+
             for (let t of towers) {
-                if (t.purchased && t.team === tm && objPos.distanceTo(t.group.position) <= 32) {
-                    hasAdjacentFriendly = true;
-                    break;
-                }
-            }
-            if (!hasAdjacentFriendly) {
-                for (let w of walls) {
-                    if (w.purchased && w.team === tm && objPos.distanceTo(w.group.position) <= 32) {
-                        hasAdjacentFriendly = true;
+                if (t.purchased && t.team === tm) {
+                    if (objPos.distanceTo(t.group.position) <= 32) {
+                        hasConnectedStructure = true;
                         break;
                     }
                 }
             }
-            return hasAdjacentFriendly;
+
+            if (!hasConnectedStructure) {
+                for (let w of walls) {
+                    if (w.purchased && w.team === tm) {
+                        if (objPos.distanceTo(w.group.position) <= 32) {
+                            hasConnectedStructure = true;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            return hasConnectedStructure;
         }
 
         function makeHB(w,h,gr=false) {

@@ -194,7 +194,6 @@
         .p-gold { color: #ffd700; }
         .ai-gold { color: #f44; }
 
-        /* Deselect Button on HUD */
         #deselect-btn {
             background: #2a3142;
             color: #8892b0;
@@ -728,7 +727,8 @@
             });
             document.addEventListener('keyup',e=>keys[e.code]=false);
             
-            document.addEventListener('pointerdown', e => {
+            // Instant touch & click handling with event propagation stop for game actions
+            window.addEventListener('pointerdown', e => {
                 if(e.target.tagName !== 'CANVAS') return;
                 mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
                 mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
@@ -1029,7 +1029,11 @@
 
         socket.on('toggle_gate', (data) => {
             let w = walls.find(item => item.x === data.x && item.z === data.z && item.rotationY === data.rotationY);
-            if (w) { w.isOpen = data.isOpen; w.targetY = w.isOpen ? -1.4 : 1.5; upCost(w); }
+            if (w) { 
+                w.isOpen = data.isOpen; 
+                w.targetY = w.isOpen ? -1.4 : 1.5; 
+                upCost(w); 
+            }
         });
 
         socket.on('unit_attack', (data) => {
@@ -1167,7 +1171,10 @@
                         gold -= W_UP[w.level+1].cost; document.getElementById('gold-val').innerText = gold; upStruct(w); 
                         if(currentRoomId) socket.emit('upgrade_structure', { roomId: currentRoomId, type: 'wall', x: w.x, z: w.z, rotationY: w.rotationY });
                     } else if(w.level >= 4) { 
-                        w.isOpen = !w.isOpen; w.targetY = w.isOpen ? -1.4 : 1.5; upCost(w); 
+                        // Immediate local toggle for snappy response
+                        w.isOpen = !w.isOpen; 
+                        w.targetY = w.isOpen ? -1.4 : 1.5; 
+                        upCost(w); 
                         if(currentRoomId) socket.emit('toggle_gate', { roomId: currentRoomId, x: w.x, z: w.z, rotationY: w.rotationY, isOpen: w.isOpen });
                     }
                 }

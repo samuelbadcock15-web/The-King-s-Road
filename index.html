@@ -16,6 +16,33 @@
         }
         #c { width: 100vw; height: 100vh; display: block; }
 
+        /* --- NON-BLOCKING IN-GAME NOTIFICATION TOAST --- */
+        #game-toast {
+            position: absolute;
+            top: 25px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            background: rgba(15, 18, 28, 0.92);
+            border: 2px solid #ffaa00;
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            box-shadow: 0 0 25px rgba(255, 170, 0, 0.4), inset 0 0 10px rgba(255, 170, 0, 0.2);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+            z-index: 9999;
+            text-align: center;
+            max-width: 90vw;
+        }
+        #game-toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
         /* --- LOBBY OVERLAY SYSTEM --- */
         #lobby-overlay {
             position: absolute;
@@ -193,24 +220,6 @@
         }
         .p-gold { color: #ffd700; }
         .ai-gold { color: #f44; }
-
-        #deselect-btn {
-            background: #2a3142;
-            color: #8892b0;
-            border: 1px solid #444;
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.15s;
-        }
-        #deselect-btn.active {
-            background: #00ffcc;
-            color: #051419;
-            border-color: #00ffcc;
-            box-shadow: 0 0 10px rgba(0,255,204,0.4);
-        }
         
         #spawn-sidebar { 
             position: absolute; 
@@ -219,9 +228,59 @@
             transform: translateY(-50%); 
             display: none; 
             flex-direction: column; 
-            gap: 12px; 
+            gap: 10px; 
             z-index: 250; 
         }
+
+        /* DESELECT BUTTON (IN SIDEBAR) */
+        #deselect-btn {
+            width: clamp(55px, 14vw, 80px);
+            height: clamp(55px, 14vw, 80px);
+            background: rgba(20, 24, 35, 0.85);
+            border: 2px solid #3a4256;
+            border-radius: 14px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #555e75;
+            cursor: default;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+            transition: all 0.2s ease;
+            user-select: none;
+            -webkit-user-select: none;
+            box-sizing: border-box;
+            padding: 0;
+            outline: none;
+        }
+        #deselect-btn span:first-child { 
+            font-size: clamp(18px, 4.5vw, 26px); 
+            font-weight: 900; 
+            line-height: 1;
+        }
+        #deselect-btn span:last-child { 
+            font-size: clamp(8px, 2vw, 10px); 
+            margin-top: 4px; 
+            font-weight: 800; 
+            letter-spacing: 0.5px;
+        }
+
+        /* ACTIVE / HIGHLIGHT STATE WHEN UNIT SELECTED */
+        #deselect-btn.active {
+            background: rgba(0, 255, 204, 0.15);
+            border-color: #00ffcc;
+            color: #00ffcc;
+            cursor: pointer;
+            box-shadow: 0 0 16px rgba(0, 255, 204, 0.45);
+        }
+        #deselect-btn.active:hover {
+            background: rgba(0, 255, 204, 0.25);
+            transform: scale(1.04);
+        }
+        #deselect-btn.active:active {
+            transform: scale(0.92);
+        }
+
         .spawn-node { 
             width: clamp(55px, 14vw, 80px); 
             height: clamp(55px, 14vw, 80px); 
@@ -348,6 +407,9 @@
 <body>
     <div id="c"></div>
 
+    <!-- IN-GAME HUD TOAST (NO BROWSER POPUPS) -->
+    <div id="game-toast"></div>
+
     <!-- 6-ROOM LOBBY OVERLAY -->
     <div id="lobby-overlay">
         <div class="lobby-header">
@@ -368,10 +430,15 @@
     <div id="resources" style="display: none;">
         <div class="p-gold">GOLD: <span id="gold-val">200</span></div>
         <div class="ai-gold">OPPONENT: <span id="ai-gold-val">200</span></div>
-        <button id="deselect-btn" onclick="clearSelection()">DESELECT</button>
     </div>
     
     <div id="spawn-sidebar">
+        <!-- DESELECT TILE IN SIDEBAR -->
+        <button id="deselect-btn" onclick="clearSelection()">
+            <span>✕</span>
+            <span>DESELECT</span>
+        </button>
+
         <div class="spawn-node" onclick="triggerSpawn('infantry')">
             <span>💂‍♂️</span>
             <span>$15</span>
@@ -409,6 +476,7 @@
             <b>🏰 TERRITORY & BUILD RULE:</b><br>
             • Complete all 4 walls around your starting base first!<br>
             • Snake outward strictly attached edge-to-edge.<br>
+            • Towers can ONLY be built touching an owned wall!<br>
             • Upgrade troops ONLY inside your home base square!<br>
             • Ground units cannot target air units (helicopters).<br><br>
             <b>📱 MOBILE CONTROLS:</b><br>
@@ -418,7 +486,7 @@
             <b>💻 PC CONTROLS:</b><br>
             • <b>Spawn Troops:</b> Press [1], [2], or [3]<br>
             • <b>Camera Move:</b> WASD keys<br>
-            • <b>Deselect Unit:</b> Click [DESELECT] button on top left
+            • <b>Deselect Unit:</b> Click [DESELECT] button on sidebar
         </div>
     </div>
 
@@ -438,12 +506,23 @@
         let currentRoomId = null;
         let myReadyState = false;
         let isTouchDevice = false;
+        let toastTimer = null;
+
+        function showNotification(msg) {
+            const toast = document.getElementById('game-toast');
+            if (!toast) return;
+            toast.innerText = msg;
+            toast.classList.add('show');
+            if (toastTimer) clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2500);
+        }
 
         window.addEventListener('DOMContentLoaded', () => {
             isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (window.innerWidth <= 1024);
         });
 
-        // Render 6 Lobbies dynamically
         socket.on('lobbies_update', (lobbies) => {
             const grid = document.getElementById('lobbies-grid');
             grid.innerHTML = '';
@@ -542,10 +621,9 @@
         });
 
         socket.on('lobby_error', (msg) => {
-            alert(msg);
+            showNotification(msg);
         });
 
-        // 3-Second Countdown transition into the game
         socket.on('start_match_countdown', (data) => {
             myTeam = data.team;
             currentRoomId = data.roomId;
@@ -585,8 +663,8 @@
         });
 
         socket.on('opponent_disconnected', () => {
-            alert("Your opponent disconnected from the match!");
-            location.reload();
+            showNotification("Your opponent disconnected from the match!");
+            setTimeout(() => location.reload(), 2000);
         });
 
         function handleTouch(e, key, isPressed) {
@@ -779,7 +857,8 @@
             for(let i=0;i<p.count;i++){let d=Math.pow(p.getX(i)-x,2)+Math.pow(p.getZ(i)-z,2);if(d<mD){mD=d;cl=p.getY(i);}} return cl;
         }
 
-        function canConnectToTeam(objPos, tm) {
+        // Connection validation: Strict wall-touch rule for towers
+        function canConnectToTeam(objPos, tm, isTower = false) {
             let baseCenter = tm === 'player' ? playerSpawnPoint : aiSpawnPoint;
             
             let homeSquareWalls = walls.filter(w => w.group.position.distanceTo(baseCenter) <= 32);
@@ -790,9 +869,15 @@
                 return isPartOfHomeSquare;
             }
 
+            // Towers MUST have at least one purchased friendly wall directly touching them (half length = 15 units)
+            if (isTower) {
+                return walls.some(w => w.purchased && w.team === tm && objPos.distanceTo(w.group.position) <= 16.5);
+            }
+
+            // Wall placement connectivity: must touch a friendly wall or friendly tower
             let hasDirectlyConnectedStructure = false;
             for (let t of towers) {
-                if (t.purchased && t.team === tm && objPos.distanceTo(t.group.position) <= 32) {
+                if (t.purchased && t.team === tm && objPos.distanceTo(t.group.position) <= 16.5) {
                     hasDirectlyConnectedStructure = true;
                     break;
                 }
@@ -1147,7 +1232,7 @@
                         let isInHomeBase = u.mesh.position.distanceTo(basePt) <= 32;
 
                         if (!isInHomeBase) {
-                            alert("Troops can only be upgraded while inside your starting home base square!");
+                            showNotification("⚠️ Troops can only be upgraded inside your starting base square!");
                             return;
                         }
 
@@ -1178,7 +1263,11 @@
                 let t = tH[0].object.userData.towerRef;
                 let cost = COSTS.tower * Math.pow(2, t.purchaseCount);
                 if(!t.purchased) {
-                    if(!canConnectToTeam(t.group.position, myTeam)) return;
+                    // Check strict wall-touch rule for tower purchase
+                    if(!canConnectToTeam(t.group.position, myTeam, true)) {
+                        showNotification("⚠️ You must build a wall touching this tower first!");
+                        return;
+                    }
                 }
                 if(!t.purchased && gold >= cost) {
                     gold -= cost; document.getElementById('gold-val').innerText = gold; ownTower(t, myTeam);
@@ -1192,7 +1281,10 @@
                 let w = wH[0].object.userData.wallRef;
                 let cost = COSTS.wall * Math.pow(2, w.purchaseCount);
                 if(!w.purchased) {
-                    if(!canConnectToTeam(w.group.position, myTeam)) return;
+                    if(!canConnectToTeam(w.group.position, myTeam, false)) {
+                        showNotification("⚠️ Must attach to your home base or existing territory!");
+                        return;
+                    }
                 }
                 if(!w.purchased && gold >= cost) {
                     gold -= cost; document.getElementById('gold-val').innerText = gold; ownWall(w, myTeam);
@@ -1369,6 +1461,7 @@
                 u.mesh.position.y=THREE.MathUtils.lerp(u.mesh.position.y, targetYPos, 5*delta);
             });
 
+            // Fast camera movement & responsive deceleration
             velocity.multiplyScalar(1 - 14 * delta);
             let f = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
             let r = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);

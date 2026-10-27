@@ -22,7 +22,7 @@
             top: 25px;
             left: 50%;
             transform: translateX(-50%) translateY(-20px);
-            background: rgba(15, 18, 28, 0.92);
+            background: rgba(15, 18, 28, 0.94);
             border: 2px solid #ffaa00;
             color: #fff;
             padding: 12px 24px;
@@ -516,7 +516,7 @@
             if (toastTimer) clearTimeout(toastTimer);
             toastTimer = setTimeout(() => {
                 toast.classList.remove('show');
-            }, 2500);
+            }, 2600);
         }
 
         window.addEventListener('DOMContentLoaded', () => {
@@ -857,41 +857,57 @@
             for(let i=0;i<p.count;i++){let d=Math.pow(p.getX(i)-x,2)+Math.pow(p.getZ(i)-z,2);if(d<mD){mD=d;cl=p.getY(i);}} return cl;
         }
 
-        // Connection validation: Strict wall-touch rule for towers
-        function canConnectToTeam(objPos, tm, isTower = false) {
+        // Connection & Territory Validation System with Dynamic State & Granular Errors
+        function checkPlacementValidity(targetObj, tm, isTower = false) {
             let baseCenter = tm === 'player' ? playerSpawnPoint : aiSpawnPoint;
+            let objPos = isTower ? targetObj.group.position : targetObj.group.position;
             
+            // All 4 walls enclosing the starting home base
             let homeSquareWalls = walls.filter(w => w.group.position.distanceTo(baseCenter) <= 32);
-            let homeSquareComplete = homeSquareWalls.length > 0 && homeSquareWalls.every(w => w.purchased && w.team === tm);
+            let homeSquareComplete = homeSquareWalls.length === 4 && homeSquareWalls.every(w => w.purchased && w.team === tm);
 
+            // Phase 1: Base Wall Integrity Enforcement
             if (!homeSquareComplete) {
-                let isPartOfHomeSquare = homeSquareWalls.some(w => w.x === objPos.x && w.z === objPos.z);
-                return isPartOfHomeSquare;
-            }
-
-            // Towers MUST have at least one purchased friendly wall directly touching them (half length = 15 units)
-            if (isTower) {
-                return walls.some(w => w.purchased && w.team === tm && objPos.distanceTo(w.group.position) <= 16.5);
-            }
-
-            // Wall placement connectivity: must touch a friendly wall or friendly tower
-            let hasDirectlyConnectedStructure = false;
-            for (let t of towers) {
-                if (t.purchased && t.team === tm && objPos.distanceTo(t.group.position) <= 16.5) {
-                    hasDirectlyConnectedStructure = true;
-                    break;
+                if (isTower) {
+                    return { ok: false, reason: "⚠️ Build all 4 walls around your home base first!" };
                 }
+                let isPartOfHomeSquare = homeSquareWalls.some(w => w === targetObj);
+                if (!isPartOfHomeSquare) {
+                    return { ok: false, reason: "⚠️ Build all 4 walls around your home base first!" };
+                }
+                return { ok: true };
             }
-            if (!hasDirectlyConnectedStructure) {
-                for (let w of walls) {
-                    if (w.purchased && w.team === tm && objPos.distanceTo(w.group.position) <= 22) {
-                        hasDirectlyConnectedStructure = true;
+
+            // Phase 2: Territorial Expansion (Base is fully intact)
+            if (isTower) {
+                // Towers strictly require a directly touching purchased friendly wall
+                let touchesWall = walls.some(w => w.purchased && w.team === tm && objPos.distanceTo(w.group.position) <= 16.5);
+                if (!touchesWall) {
+                    return { ok: false, reason: "⚠️ Towers can only be built directly touching an owned wall!" };
+                }
+                return { ok: true };
+            } else {
+                // Walls must connect edge-to-edge with an existing friendly structure
+                let hasConnection = false;
+                for (let t of towers) {
+                    if (t.purchased && t.team === tm && objPos.distanceTo(t.group.position) <= 16.5) {
+                        hasConnection = true;
                         break;
                     }
                 }
+                if (!hasConnection) {
+                    for (let w of walls) {
+                        if (w.purchased && w.team === tm && objPos.distanceTo(w.group.position) <= 22) {
+                            hasConnection = true;
+                            break;
+                        }
+                    }
+                }
+                if (!hasConnection) {
+                    return { ok: false, reason: "⚠️ Must attach edge-to-edge with your existing territory!" };
+                }
+                return { ok: true };
             }
-
-            return hasDirectlyConnectedStructure;
         }
 
         function makeHB(w,h,gr=false) {
@@ -1263,9 +1279,10 @@
                 let t = tH[0].object.userData.towerRef;
                 let cost = COSTS.tower * Math.pow(2, t.purchaseCount);
                 if(!t.purchased) {
-                    // Check strict wall-touch rule for tower purchase
-                    if(!canConnectToTeam(t.group.position, myTeam, true)) {
-                        showNotification("⚠️ You must build a wall touching this tower first!");
+                    // Check placement validity for tower
+                    let check = checkPlacementValidity(t, myTeam, true);
+                    if(!check.ok) {
+                        showNotification(check.reason);
                         return;
                     }
                 }
@@ -1281,8 +1298,10 @@
                 let w = wH[0].object.userData.wallRef;
                 let cost = COSTS.wall * Math.pow(2, w.purchaseCount);
                 if(!w.purchased) {
-                    if(!canConnectToTeam(w.group.position, myTeam, false)) {
-                        showNotification("⚠️ Must attach to your home base or existing territory!");
+                    // Check placement validity for wall
+                    let check = checkPlacementValidity(w, myTeam, false);
+                    if(!check.ok) {
+                        showNotification(check.reason);
                         return;
                     }
                 }

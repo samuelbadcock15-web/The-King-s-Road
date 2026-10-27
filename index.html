@@ -742,19 +742,14 @@
         function canConnectToTeam(objPos, tm) {
             let baseCenter = tm === 'player' ? playerSpawnPoint : aiSpawnPoint;
             
-            // 1. Find the 4 walls immediately surrounding your starting home base square
             let homeSquareWalls = walls.filter(w => w.group.position.distanceTo(baseCenter) <= 32);
-
-            // 2. Check if all 4 home base square walls are fully purchased and owned by you
             let homeSquareComplete = homeSquareWalls.length > 0 && homeSquareWalls.every(w => w.purchased && w.team === tm);
 
-            // 3. If your home square is NOT complete, you can ONLY buy the remaining unpurchased walls of your home square
             if (!homeSquareComplete) {
                 let isPartOfHomeSquare = homeSquareWalls.some(w => w.x === objPos.x && w.z === objPos.z);
                 return isPartOfHomeSquare;
             }
 
-            // 4. Once home square IS complete, enforce strict physical attachment (<= 22 units) to already owned structures
             let hasDirectlyConnectedStructure = false;
             for (let t of towers) {
                 if (t.purchased && t.team === tm && objPos.distanceTo(t.group.position) <= 32) {
@@ -816,7 +811,6 @@
             if(gameOverActive) return; 
             gameOverActive = true; 
 
-            // Smooth Victory/Defeat Fireworks/Explosions
             for (let i = 0; i < 12; i++) {
                 setTimeout(() => {
                     let rx = (Math.random() - 0.5) * wWidth;
@@ -841,6 +835,13 @@
             s.style.display = "flex"; 
             setTimeout(() => location.reload(), 4500); 
         }
+
+        // Shared function to apply damage locally and notify server if it's our target
+        function applyDamageToTarget(targetObj, damageAmount) {
+            if (!targetObj || targetObj.hp <= 0) return;
+            dmg(targetObj, damageAmount);
+        }
+
         function dmg(e,a) {
             e.hp-=a; upHB(e.hpBar,e.hp,e.maxHp); if(e.hpBarBack)upHB(e.hpBarBack,e.hp,e.maxHp);
             if(e.type==='base'&&e.hp<=0){ endG(e.team); return; }
@@ -981,6 +982,14 @@
             if (w) { w.isOpen = data.isOpen; w.targetY = w.isOpen ? -1.4 : 1.5; upCost(w); }
         });
 
+        // NEW: Receive sync attacks from opponent so damage registers correctly on both screens
+        socket.on('unit_attack', (data) => {
+            let targetUnit = units.find(u => u.id === data.targetUnitId);
+            if (targetUnit) {
+                applyDamageToTarget(targetUnit, data.damage);
+            }
+        });
+
         function getLOS(orig,targ,tm, targetObj = null) {
             let d=new THREE.Vector3().subVectors(targ,orig), dst=d.length(); d.normalize(); let ray=new THREE.Ray(orig,d), cObstacle=null, cD=dst;
             for(let w of walls){
@@ -1051,7 +1060,6 @@
                 let u = clU[0].object.parent.userData.ref || clU[0].object.userData.ref;
                 if(u && u.team === myTeam) {
                     if(selected === u) {
-                        // Double-click/re-click selected unit to UPGRADE it!
                         if(u.level < 5) {
                             let upgradeCost = TR_UP[u.level + 1].cost;
                             if(gold >= upgradeCost) {
@@ -1169,10 +1177,20 @@
                                 let lM = new THREE.Line(new THREE.BufferGeometry().setFromPoints([orig, tPt]), new THREE.LineBasicMaterial({color: u.team === 'player' ? 0xff0055 : 0xff2222}));
                                 scene.add(lM);
                                 expls.push({m: lM, t: 0.15, type: 'laser'});
-                                if(bestTarget.type === 'unit') dmg(bestTarget.obj, dmgV);
-                                else if(bestTarget.type === 'wall') dmg(bestTarget.obj, dmgV);
-                                else if(bestTarget.type === 'tower') dmg(bestTarget.obj, dmgV);
-                                else if(bestTarget.type === 'base') dmg(bestTarget.obj, dmgV);
+                                
+                                if(bestTarget.type === 'unit') {
+                                    applyDamageToTarget(bestTarget.obj, dmgV);
+                                    // Broadcast attack to the opponent so they take damage on their screen too!
+                                    if(currentRoomId) {
+                                        socket.emit('unit_attack', { roomId: currentRoomId, targetUnitId: bestTarget.obj.id, damage: dmgV });
+                                    }
+                                } else if(bestTarget.type === 'wall') {
+                                    dmg(bestTarget.obj, dmgV);
+                                } else if(bestTarget.type === 'tower') {
+                                    dmg(bestTarget.obj, dmgV);
+                                } else if(bestTarget.type === 'base') {
+                                    dmg(bestTarget.obj, dmgV);
+                                }
                             }
                         }
                     }

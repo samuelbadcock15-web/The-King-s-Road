@@ -687,7 +687,6 @@
         const aiSpawnPoint = new THREE.Vector3(50, 10, -65), playerSpawnPoint = new THREE.Vector3(-50, 10, 65);
         let playerBase, aiBase, gameOverActive = false;
 
-        // Reliable wall match helper to eliminate floating point angle & coordinate desyncs
         function findWall(x, z, rotY) {
             return walls.find(w => Math.hypot(w.x - x, w.z - z) < 0.2 && Math.abs(w.rotationY - rotY) < 0.05);
         }
@@ -841,7 +840,8 @@
         function triggerSpawn(typ) {
             if(!matchStarted) return;
             if(gold < COSTS[typ]) return;
-            gold -= COSTS[typ]; document.getElementById('gold-val').innerText = gold;
+            gold -= COSTS[typ]; 
+            document.getElementById('gold-val').innerText = gold;
 
             let basePt = myTeam === 'player' ? playerSpawnPoint : aiSpawnPoint;
             let offset = new THREE.Vector3((Math.random()-.5)*10, 0, (Math.random()-.5)*10);
@@ -941,10 +941,12 @@
             let t=new THREE.CanvasTexture(c), m=new THREE.Mesh(new THREE.PlaneGeometry(4.5,2.25),new THREE.MeshBasicMaterial({map:t,side:2,transparent:true}));
             m.userData={c,ctx,t}; return m;
         }
+
         function upUnitLevelBillboard(o) {
             if(!o.levelBillboard)return; let ctx=o.levelBillboard.userData.ctx; ctx.clearRect(0,0,128,64); ctx.font='bold 38px sans-serif'; ctx.textAlign='center'; ctx.fillStyle='#000';
             let txt = "" + o.level; ctx.fillText(txt,66,40); ctx.fillStyle='#ffd700'; ctx.fillText(txt,64,38); o.levelBillboard.userData.t.needsUpdate=true;
         }
+
         function upCost(o) {
             let updateBillboardSide = (bb) => {
                 if(!bb) return; let ctx=bb.userData.ctx; ctx.clearRect(0,0,256,128); ctx.font='bold 54px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillStyle='#000';
@@ -956,6 +958,7 @@
             updateBillboardSide(o.costBillboard);
             updateBillboardSide(o.costBillboardBack);
         }
+
         function makeBase(x,z,tm) {
             let y=getH(x,z), g=new THREE.Group(); g.position.set(x,y,z);
             let m=new THREE.Mesh(new THREE.PlaneGeometry(16,16).rotateX(-Math.PI/2),new THREE.MeshStandardMaterial({map:tm==='player'?pTex:aTex}));
@@ -967,6 +970,9 @@
         function endG(winnerTeam) { 
             if(gameOverActive) return; 
             gameOverActive = true; 
+
+            // Edge-case Fix: Clear selection safely to prevent TypeError on deleted entities
+            clearSelection();
 
             let loserBase = winnerTeam === 'player' ? aiBase : playerBase;
             if (loserBase) {
@@ -1176,8 +1182,11 @@
             projs.push({ mesh: sM, start: startPos.clone(), end: endPos.clone(), p: 0, team: team });
         }
 
+        // Edge-case Fix: Accurately subtract opponent gold on unit spawn
         socket.on('spawn_unit', (data) => {
             spU(data.type, data.team, new THREE.Vector3(data.pos.x, data.pos.y, data.pos.z), data.unitId);
+            enemyGold = Math.max(0, enemyGold - COSTS[data.type]);
+            document.getElementById('ai-gold-val').innerText = Math.floor(enemyGold);
         });
 
         socket.on('unit_order_move', (data) => {
@@ -1214,14 +1223,21 @@
             document.getElementById('ai-gold-val').innerText = Math.floor(enemyGold);
         });
 
+        // Edge-case Fix: Accurately deduct opponent gold on tier upgrade & scale current HP proportionally
         socket.on('upgrade_unit', (data) => {
             let u = units.find(item => item.id === data.unitId);
             if(u) {
+                let oldMaxHp = u.maxHp;
                 u.level = data.level;
                 u.maxHp = HP_M[u.type] * TR_UP[u.level].mH;
-                u.hp = u.maxHp;
+                let hpRatio = u.hp / oldMaxHp;
+                u.hp = Math.max(1, Math.round(u.maxHp * hpRatio));
                 upHB(u.hpBar, u.hp, u.maxHp);
                 upUnitLevelBillboard(u);
+            }
+            if(TR_UP[data.level]) {
+                enemyGold = Math.max(0, enemyGold - TR_UP[data.level].cost);
+                document.getElementById('ai-gold-val').innerText = Math.floor(enemyGold);
             }
         });
 
@@ -1297,7 +1313,8 @@
             d.normalize(); 
             let ray = new THREE.Ray(orig, d), cObstacle = null, cD = dst;
             for(let w of walls){
-                if(!w.purchased || (w.level >= 4 && w.isOpen)) continue;
+                // Physical gate check: only transparent to LOS if lowered below 0.2
+                if(!w.purchased || (w.level >= 4 && w.gateMesh.position.y < 0.2)) continue;
                 if(targetObj && targetObj === w) continue;
                 let box = new THREE.Box3().setFromObject(w.components[0].parent), pt = new THREE.Vector3();
                 if(ray.intersectBox(box, pt)){ let dist = orig.distanceTo(pt); if(dist < cD){ cD = dist; cObstacle = w; targ.copy(pt); } }
@@ -1311,21 +1328,21 @@
             return cObstacle;
         }
 
-        function chkW(u,nX,nZ) {
+        // Edge-case Fix: Physical gate height evaluation prevents phasing or snapping
+        function chkW(u, nX, nZ) {
             if(u && u.type === 'helicopter') return false;
             for(let w of walls){
                 let dx = nX - w.x, dz = nZ - w.z;
                 let lX = dx * Math.cos(-w.rotationY) - dz * Math.sin(-w.rotationY);
                 let lZ = dx * Math.sin(-w.rotationY) + dz * Math.cos(-w.rotationY);
                 if(Math.abs(lZ) < 1 && Math.abs(lX) < w.length / 2){
-                    if(w.purchased && w.level >= 4 && w.isOpen && Math.abs(lX) < 2.8) continue; 
+                    if(w.purchased && w.level >= 4 && w.gateMesh.position.y < 0.2 && Math.abs(lX) < 2.8) continue; 
                     return true;
                 }
             } 
             return false;
         }
 
-        // Clean unified interaction: selection, building purchase, and movement orders
         function handleInteraction() {
             if(!matchStarted || gameOverActive) return;
             rc.setFromCamera(mouse, camera);
@@ -1353,9 +1370,11 @@
                                 gold -= upgradeCost;
                                 document.getElementById('gold-val').innerText = gold;
                                 
+                                let oldMax = u.maxHp;
                                 u.level++;
                                 u.maxHp = HP_M[u.type] * TR_UP[u.level].mH;
-                                u.hp = u.maxHp;
+                                let ratio = u.hp / oldMax;
+                                u.hp = Math.max(1, Math.round(u.maxHp * ratio));
                                 upHB(u.hpBar, u.hp, u.maxHp);
                                 upUnitLevelBillboard(u);
                                 
@@ -1443,7 +1462,6 @@
             
             walls.forEach(w => w.gateMesh.position.y = THREE.MathUtils.lerp(w.gateMesh.position.y, w.targetY, 8 * delta));
             
-            // Visual projectile animation
             for(let i = projs.length - 1; i >= 0; i--) {
                 let p = projs[i]; 
                 p.p += 4 * delta;
@@ -1474,7 +1492,6 @@
                 }
             }
 
-            // Autonomous Towers: only locally owned towers emit attacks
             towers.forEach(t => {
                 if(!t.purchased || t.team !== myTeam) return;
                 t.attackCD -= delta;
@@ -1505,7 +1522,6 @@
                 }
             });
 
-            // Autonomous Troops: only local player's units calculate target & shoot
             units.forEach(u => {
                 if(u.actCD > 0) u.actCD -= delta;
                 let gh = getH(u.mesh.position.x, u.mesh.position.z);
@@ -1589,7 +1605,6 @@
                                 expls.push({m: lM, t: 0.15, type: 'laser'});
                             }
 
-                            // Apply and broadcast damage directly to target
                             if(bestTarget.type === 'unit') {
                                 applyDamageToTarget(bestTarget.obj, dmgV);
                                 if(currentRoomId) {
@@ -1650,7 +1665,6 @@
                 u.mesh.position.y = THREE.MathUtils.lerp(u.mesh.position.y, targetYPos, 5 * delta);
             });
 
-            // Fast camera movement & deceleration
             velocity.multiplyScalar(1 - 14 * delta);
             let f = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
             let r = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);

@@ -962,7 +962,6 @@
             if(gameOverActive) return; 
             gameOverActive = true; 
 
-            // Force the defeated base health bar to 0 cleanly on both screens
             let loserBase = winnerTeam === 'player' ? aiBase : playerBase;
             if (loserBase) {
                 loserBase.hp = 0;
@@ -1000,6 +999,41 @@
             dmg(targetObj, damageAmount);
         }
 
+        // Dedicated helper to neutralize destroyed structures locally & on network
+        function neutralizeStructure(e) {
+            e.purchaseCount++;
+            e.purchased = false;
+            e.level = 1;
+            e.team = 'neutral';
+            e.maxHp = HP_M[e.type];
+            e.hp = e.maxHp;
+            e.hpBar.visible = false;
+            if(e.hpBarBack) e.hpBarBack.visible = false;
+            if(e.type === 'tower'){
+                e.tD = 35;
+                e.fR = 1.2;
+                e.radRing.material.color.setHex(0x4477aa);
+            } else {
+                e.isOpen = false;
+                e.targetY = 1.5;
+                e.gateMesh.position.y = 1.5;
+            }
+            let mat = new THREE.MeshStandardMaterial({color: e.type==='tower' ? 0x4477aa : 0xaa6644, transparent:true, opacity:0.2});
+            e.components.forEach(c => c.material = mat);
+            upCost(e);
+        }
+
+        // Dedicated helper to remove dead unit locally
+        function removeUnitLocally(u) {
+            scene.remove(u.mesh);
+            if(u.shadow) scene.remove(u.shadow);
+            units = units.filter(item => item !== u);
+            if(selected === u) {
+                selected = null;
+                updateDeselectButtonState();
+            }
+        }
+
         function dmg(e, a) {
             e.hp = Math.max(0, e.hp - a); 
             upHB(e.hpBar, e.hp, e.maxHp); 
@@ -1016,18 +1050,23 @@
             }
 
             if(e.hp <= 0) {
-                if(e.type==='tower'||e.type==='wall') {
-                    e.purchaseCount++; e.purchased=false; e.level=1; e.team='neutral'; e.maxHp=HP_M[e.type]; e.hp=e.maxHp; e.hpBar.visible=false; if(e.hpBarBack)e.hpBarBack.visible=false;
-                    if(e.type==='tower'){ e.tD=35; e.fR=1.2; e.radRing.material.color.setHex(0x4477aa); } else { e.isOpen=false; e.targetY=1.5; e.gateMesh.position.y=1.5; }
-                    let mat=new THREE.MeshStandardMaterial({color:e.type==='tower'?0x4477aa:0xaa6644,transparent:true,opacity:0.2}); e.components.forEach(c=>c.material=mat); upCost(e);
+                if(e.type === 'tower' || e.type === 'wall') {
+                    neutralizeStructure(e);
+                    if(currentRoomId) {
+                        socket.emit('structure_destroyed', {
+                            roomId: currentRoomId,
+                            type: e.type,
+                            x: e.x,
+                            z: e.z,
+                            rotationY: e.rotationY || 0
+                        });
+                    }
                 } else { 
-                    scene.remove(e.mesh); 
-                    if(e.shadow) scene.remove(e.shadow); 
-                    units = units.filter(u => u !== e); 
-                    if(selected === e) { 
-                        selected = null; 
-                        updateDeselectButtonState(); 
-                    } 
+                    let deadId = e.id;
+                    removeUnitLocally(e);
+                    if(currentRoomId) {
+                        socket.emit('unit_killed', { roomId: currentRoomId, unitId: deadId });
+                    }
                 }
             }
         }
@@ -1181,6 +1220,7 @@
             }
         });
 
+        // Exact Damage Sync Listeners
         socket.on('unit_attack', (data) => {
             let targetUnit = units.find(u => u.id === data.targetUnitId);
             if (targetUnit) {
@@ -1188,7 +1228,38 @@
             }
         });
 
-        // Exact HP Synchronization across both screens
+        socket.on('structure_attack', (data) => {
+            let targetStruct = null;
+            if (data.type === 'tower') {
+                targetStruct = towers.find(t => t.x === data.x && t.z === data.z);
+            } else if (data.type === 'wall') {
+                targetStruct = walls.find(w => w.x === data.x && w.z === data.z && w.rotationY === data.rotationY);
+            }
+            if (targetStruct) {
+                dmg(targetStruct, data.damage);
+            }
+        });
+
+        // Instant Death Synchronization across devices
+        socket.on('unit_killed', (data) => {
+            let u = units.find(item => item.id === data.unitId);
+            if (u) {
+                removeUnitLocally(u);
+            }
+        });
+
+        socket.on('structure_destroyed', (data) => {
+            let target = null;
+            if (data.type === 'tower') {
+                target = towers.find(t => t.x === data.x && t.z === data.z);
+            } else if (data.type === 'wall') {
+                target = walls.find(w => w.x === data.x && w.z === data.z && w.rotationY === data.rotationY);
+            }
+            if (target) {
+                neutralizeStructure(target);
+            }
+        });
+
         socket.on('base_attack', (data) => {
             let targetBase = data.targetTeam === 'player' ? playerBase : aiBase;
             if (targetBase) {
@@ -1388,8 +1459,9 @@
                 else if(e.type==='ring'){let f=(0.3-e.t)*12;e.m.scale.set(f,f,f);e.m.material.opacity=e.t/0.3;} else if(e.type==='laser'){e.m.material.opacity=e.t/0.15;}
             }
 
+            // Towers only evaluate attack if OWNED by local player
             towers.forEach(t => {
-                if(!t.purchased || t.team === 'neutral') return;
+                if(!t.purchased || t.team !== myTeam) return;
                 t.attackCD -= delta;
                 if(t.attackCD <= 0) {
                     let targetTeam = t.team === 'player' ? 'enemy' : 'player';
@@ -1411,7 +1483,7 @@
                         expls.push({m: lM, t: 0.15, type: 'laser'});
                         
                         applyDamageToTarget(closestEnemy, t.tD);
-                        if(currentRoomId && t.team === myTeam) {
+                        if(currentRoomId) {
                             socket.emit('unit_attack', { roomId: currentRoomId, targetUnitId: closestEnemy.id, damage: t.tD });
                         }
                     }
@@ -1427,8 +1499,9 @@
                     u.rotorMesh.rotation.y += 25 * delta;
                 }
 
-                if(!gameOverActive && u.actCD <= 0) {
-                    let targetTeam = u.team === 'player' ? 'enemy' : 'player';
+                // Autonomous combat ONLY calculated by the unit's owner to prevent double/desynced hits
+                if(!gameOverActive && u.actCD <= 0 && u.team === myTeam) {
+                    let targetTeam = myTeam === 'player' ? 'enemy' : 'player';
                     let bestTarget = null, bestDist = Infinity;
                     
                     units.forEach(other => {
@@ -1485,19 +1558,28 @@
                                 scene.add(lM);
                                 expls.push({m: lM, t: 0.15, type: 'laser'});
                                 
-                                // Direct damage handling and base broadcast
                                 if(bestTarget.type === 'unit') {
                                     applyDamageToTarget(bestTarget.obj, dmgV);
-                                    if(currentRoomId && u.team === myTeam) {
+                                    if(currentRoomId) {
                                         socket.emit('unit_attack', { roomId: currentRoomId, targetUnitId: bestTarget.obj.id, damage: dmgV });
                                     }
                                 } else if(bestTarget.type === 'base') {
                                     dmg(bestTarget.obj, dmgV);
-                                    if(currentRoomId && u.team === myTeam) {
+                                    if(currentRoomId) {
                                         socket.emit('base_attack', { roomId: currentRoomId, targetTeam: bestTarget.obj.team, currentHp: bestTarget.obj.hp });
                                     }
                                 } else {
                                     dmg(bestTarget.obj, dmgV);
+                                    if(currentRoomId) {
+                                        socket.emit('structure_attack', {
+                                            roomId: currentRoomId,
+                                            type: bestTarget.obj.type,
+                                            x: bestTarget.obj.x,
+                                            z: bestTarget.obj.z,
+                                            rotationY: bestTarget.obj.rotationY || 0,
+                                            damage: dmgV
+                                        });
+                                    }
                                 }
                             }
                         }

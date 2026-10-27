@@ -28,8 +28,8 @@ for (let i = 1; i <= 6; i++) {
     rooms[roomId] = {
         id: roomId,
         name: `Arena 0${i}`,
-        players: {}, // socketId: { team: 'player'|'enemy', ready: false }
-        status: 'open' // 'open' | 'in_game'
+        players: {},
+        status: 'open'
     };
 }
 
@@ -190,6 +190,10 @@ io.on('connection', (socket) => {
 
     socket.on('base_attack', (data) => {
         socket.to(data.roomId).emit('base_attack', data);
+    });
+
+    socket.on('tank_shot_fx', (data) => {
+        socket.to(data.roomId).emit('tank_shot_fx', data);
     });
 
     socket.on('game_over_trigger', (data) => {

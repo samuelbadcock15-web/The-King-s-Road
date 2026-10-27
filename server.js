@@ -28,8 +28,8 @@ for (let i = 1; i <= 6; i++) {
     rooms[roomId] = {
         id: roomId,
         name: `Arena 0${i}`,
-        players: {}, 
-        status: 'open' 
+        players: {}, // socketId: { team: 'player'|'enemy', ready: false }
+        status: 'open' // 'open' | 'in_game'
     };
 }
 
@@ -80,6 +80,7 @@ function removePlayerFromCurrentRoom(socket) {
 io.on('connection', (socket) => {
     console.log(`--> Player connected: ${socket.id}`);
 
+    // Send initial list of all rooms
     socket.emit('lobbies_update', getLobbiesSummary());
 
     socket.on('join_room', (roomId) => {
@@ -97,6 +98,7 @@ io.on('connection', (socket) => {
             return;
         }
 
+        // Clean up from previous room if any
         removePlayerFromCurrentRoom(socket);
 
         const assignedTeam = currentPlayers.length === 0 ? 'player' : (room.players[currentPlayers[0]].team === 'player' ? 'enemy' : 'player');
@@ -172,7 +174,6 @@ io.on('connection', (socket) => {
         socket.to(data.roomId).emit('toggle_gate', data);
     });
 
-    // NEW: Sync unit damage and attacks across clients
     socket.on('unit_attack', (data) => {
         socket.to(data.roomId).emit('unit_attack', data);
     });

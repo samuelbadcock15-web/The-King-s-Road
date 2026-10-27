@@ -80,7 +80,6 @@ function removePlayerFromCurrentRoom(socket) {
 io.on('connection', (socket) => {
     console.log(`--> Player connected: ${socket.id}`);
 
-    // Send initial list of all rooms
     socket.emit('lobbies_update', getLobbiesSummary());
 
     socket.on('join_room', (roomId) => {
@@ -177,6 +176,7 @@ io.on('connection', (socket) => {
         socket.to(data.roomId).emit('unit_attack', data);
     });
 
+    // Synchronize exact base HP state
     socket.on('base_attack', (data) => {
         socket.to(data.roomId).emit('base_attack', data);
     });

@@ -385,7 +385,8 @@
             <b>ONLINE 1v1 STRATEGY</b> (+15 gold/s)<br><br>
             <b>🏰 TERRITORY & BUILD RULE:</b><br>
             • Complete all 4 walls around your starting base first!<br>
-            • Snake outward strictly attached edge-to-edge.<br><br>
+            • Snake outward strictly attached edge-to-edge.<br>
+            • Upgrade troops ONLY inside your home base square!<br><br>
             <b>📱 MOBILE CONTROLS:</b><br>
             • <b>Spawn Troops:</b> Tap left sidebar icons<br>
             • <b>Camera Pan:</b> Use left or right D-Pad<br>
@@ -395,7 +396,7 @@
             • <b>Camera Move:</b> WASD keys<br>
             • <b>Camera Look:</b> Hold RMB & drag mouse<br>
             • <b>Select & Move Unit:</b> Left-Click unit, then Left-Click ground<br>
-            • <b>Upgrade Unit:</b> Click selected unit again
+            • <b>Upgrade Unit:</b> Click selected unit again (while in home base)
         </div>
     </div>
 
@@ -836,7 +837,6 @@
             setTimeout(() => location.reload(), 4500); 
         }
 
-        // Shared function to apply damage locally and notify server if it's our target
         function applyDamageToTarget(targetObj, damageAmount) {
             if (!targetObj || targetObj.hp <= 0) return;
             dmg(targetObj, damageAmount);
@@ -982,7 +982,6 @@
             if (w) { w.isOpen = data.isOpen; w.targetY = w.isOpen ? -1.4 : 1.5; upCost(w); }
         });
 
-        // NEW: Receive sync attacks from opponent so damage registers correctly on both screens
         socket.on('unit_attack', (data) => {
             let targetUnit = units.find(u => u.id === data.targetUnitId);
             if (targetUnit) {
@@ -1060,6 +1059,14 @@
                 let u = clU[0].object.parent.userData.ref || clU[0].object.userData.ref;
                 if(u && u.team === myTeam) {
                     if(selected === u) {
+                        let basePt = myTeam === 'player' ? playerSpawnPoint : aiSpawnPoint;
+                        let isInHomeBase = u.mesh.position.distanceTo(basePt) <= 32;
+
+                        if (!isInHomeBase) {
+                            alert("Troops can only be upgraded while inside your starting home base square!");
+                            return;
+                        }
+
                         if(u.level < 5) {
                             let upgradeCost = TR_UP[u.level + 1].cost;
                             if(gold >= upgradeCost) {
@@ -1144,21 +1151,70 @@
                 else if(e.type==='ring'){let f=(0.3-e.t)*12;e.m.scale.set(f,f,f);e.m.material.opacity=e.t/0.3;} else if(e.type==='laser'){e.m.material.opacity=e.t/0.15;}
             }
 
-            units.forEach(u=>{
-                if(u.actCD>0)u.actCD-=delta;
-                let gh=getH(u.mesh.position.x,u.mesh.position.z);
-                let rng = u.type==='infantry'?18:(u.type==='tank'?22:25);
+            // --- AUTOMATED UNIVERSAL COMBAT LOOP (TOWERS & UNITS) ---
+            towers.forEach(t => {
+                if(!t.purchased || t.team === 'neutral') return;
+                t.attackCD -= delta;
+                if(t.attackCD <= 0) {
+                    let targetTeam = t.team === 'player' ? 'enemy' : 'player';
+                    let closestEnemy = null, closestDist = 30; // Tower range
+                    
+                    units.forEach(u => {
+                        if(u.team === targetTeam) {
+                            let dist = t.group.position.distanceTo(u.mesh.position);
+                            if(dist < closestDist) { closestDist = dist; closestEnemy = u; }
+                        }
+                    });
 
-                if(u.team === myTeam && !gameOverActive && u.actCD <= 0) {
+                    if(closestEnemy) {
+                        t.attackCD = t.fR;
+                        let orig = t.group.position.clone().add(new THREE.Vector3(0, 8, 0));
+                        let tPt = closestEnemy.mesh.position.clone().add(new THREE.Vector3(0, 0.5, 0));
+                        let lM = new THREE.Line(new THREE.BufferGeometry().setFromPoints([orig, tPt]), new THREE.LineBasicMaterial({color: t.team === 'player' ? 0x00ffcc : 0xff3300}));
+                        scene.add(lM);
+                        expls.push({m: lM, t: 0.15, type: 'laser'});
+                        
+                        applyDamageToTarget(closestEnemy, t.tD);
+                        if(currentRoomId && t.team === myTeam) {
+                            socket.emit('unit_attack', { roomId: currentRoomId, targetUnitId: closestEnemy.id, damage: t.tD });
+                        }
+                    }
+                }
+            });
+
+            units.forEach(u => {
+                if(u.actCD > 0) u.actCD -= delta;
+                let gh = getH(u.mesh.position.x, u.mesh.position.z);
+                let rng = u.type === 'infantry' ? 18 : (u.type === 'tank' ? 22 : 25);
+
+                // Check automated combat for ALL active units
+                if(!gameOverActive && u.actCD <= 0) {
                     let targetTeam = u.team === 'player' ? 'enemy' : 'player';
                     let bestTarget = null, bestDist = Infinity;
                     
-                    units.forEach(other => {
+                    // 1. Scan for enemy units
+                    units.find(other => {
                         if(other.team === targetTeam) {
                             let d = u.mesh.position.distanceTo(other.mesh.position);
-                            if(d < bestDist && d <= rng) { bestDist = d; bestTarget = {type:'unit', obj:other, pos:other.mesh.position.clone().add(new THREE.Vector3(0,0.5,0))}; }
+                            if(d < bestDist && d <= rng) { bestDist = d; bestTarget = {type: 'unit', obj: other, pos: other.mesh.position.clone().add(new THREE.Vector3(0, 0.5, 0))}; }
                         }
                     });
+
+                    // 2. Scan for enemy structures (walls/towers) if no units in range
+                    if(!bestTarget) {
+                        towers.forEach(t => {
+                            if(t.purchased && t.team === targetTeam) {
+                                let d = u.mesh.position.distanceTo(t.group.position);
+                                if(d < bestDist && d <= rng) { bestDist = d; bestTarget = {type: 'tower', obj: t, pos: t.group.position.clone().add(new THREE.Vector3(0, 4, 0))}; }
+                            }
+                        });
+                        walls.forEach(w => {
+                            if(w.purchased && w.team === targetTeam) {
+                                let d = u.mesh.position.distanceTo(w.group.position);
+                                if(d < bestDist && d <= rng) { bestDist = d; bestTarget = {type: 'wall', obj: w, pos: w.group.position.clone().add(new THREE.Vector3(0, 2, 0))}; }
+                            }
+                        });
+                    }
 
                     if(bestTarget) {
                         let orig = u.mesh.position.clone(); orig.y += (u.type === 'tank' ? 0.65 : 0.5);
@@ -1180,15 +1236,10 @@
                                 
                                 if(bestTarget.type === 'unit') {
                                     applyDamageToTarget(bestTarget.obj, dmgV);
-                                    // Broadcast attack to the opponent so they take damage on their screen too!
-                                    if(currentRoomId) {
+                                    if(currentRoomId && u.team === myTeam) {
                                         socket.emit('unit_attack', { roomId: currentRoomId, targetUnitId: bestTarget.obj.id, damage: dmgV });
                                     }
-                                } else if(bestTarget.type === 'wall') {
-                                    dmg(bestTarget.obj, dmgV);
-                                } else if(bestTarget.type === 'tower') {
-                                    dmg(bestTarget.obj, dmgV);
-                                } else if(bestTarget.type === 'base') {
+                                } else {
                                     dmg(bestTarget.obj, dmgV);
                                 }
                             }

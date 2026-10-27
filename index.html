@@ -176,7 +176,6 @@
         .btn-ready.is-ready { background: #00ffcc; color: #051419; border-color: #00ffcc; }
         .btn-leave { background: #ff3366; color: #fff; flex: 0.5; }
 
-        /* Countdown Overlay */
         #match-countdown {
             position: absolute;
             top: 0; left: 0; width: 100vw; height: 100vh;
@@ -202,7 +201,6 @@
             100% { transform: scale(1); }
         }
 
-        /* --- IN-GAME HUD & CONTROLS --- */
         #resources { 
             position: absolute; 
             top: 15px; 
@@ -232,7 +230,6 @@
             z-index: 250; 
         }
 
-        /* --- DESELECT BUTTON: INVERTED STYLING --- */
         #deselect-btn {
             width: clamp(55px, 14vw, 80px);
             height: clamp(55px, 14vw, 80px);
@@ -675,7 +672,7 @@
         let scene, camera, renderer, terrainGeo, terrainMesh;
         let units = [], projs = [], expls = [], selected = null, towers = [], towerHitboxes = [], walls = [], wallHitboxes = [];
         let keys = {}, prevTime = performance.now(), velocity = new THREE.Vector3(), pitch = -0.45, yaw = 0;
-        let isRmbDown = false, isTouchingLook = false, lastClick = 0;
+        let isRmbDown = false, isTouchingLook = false;
         let unitIdCounter = 0;
         const wWidth = 120, wDepth = 150, rc = new THREE.Raycaster(), mouse = new THREE.Vector2();
         let pTex, aTex, gold = 200, goldTimer = 0, enemyGold = 200;
@@ -688,7 +685,7 @@
         let playerBase, aiBase, gameOverActive = false;
 
         function findWall(x, z, rotY) {
-            return walls.find(w => Math.hypot(w.x - x, w.z - z) < 0.2 && Math.abs(w.rotationY - rotY) < 0.05);
+            return walls.find(w => Math.hypot(w.x - x, w.z - z) < 1.0 && Math.abs(Math.sin(w.rotationY) - Math.sin(rotY)) < 0.2);
         }
 
         init(); animate();
@@ -745,15 +742,23 @@
             for(let j=1;j<=4;j++) {
                 scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-wWidth/2,10.1,-wDepth/2+j*30),new THREE.Vector3(wWidth/2,10.1,-wDepth/2+j*30)]),lMat));
             }
-            for(let i=1;i<=3;i++) for(let j=1;j<=4;j++) makeTower(-wWidth/2+i*30, getH(-wWidth/2+i*30,-wDepth/2+j*30), -wDepth/2+j*30);
+
+            for(let i=1;i<=3;i++) for(let j=1;j<=4;j++) {
+                let tx = -wWidth/2 + i*30;
+                let tz = -wDepth/2 + j*30;
+                makeTower(tx, getH(tx, tz), tz);
+            }
             
             let wSet = new Set();
             for(let c=0;c<5;c++) for(let r=0;r<4;r++) {
                 let xS = -wWidth/2+r*30, xE = xS+30, zS = -wDepth/2+c*30, zE = zS+30;
                 let n=`${xS},${zS}_${xE},${zS}`, s=`${xS},${zE}_${xE},${zE}`, w=`${xS},${zS}_${xS},${zE}`, e=`${xE},${zS}_${xE},${zE}`;
-                if(!wSet.has(n)){ makeWall((xS+xE)/2,zS,30,0); wSet.add(n); } if(!wSet.has(s)){ makeWall((xS+xE)/2,zE,30,0); wSet.add(s); }
-                if(!wSet.has(w)){ makeWall(xS,(zS+zE)/2,30,Math.PI/2); wSet.add(w); } if(!wSet.has(e)){ makeWall(xE,(zS+zE)/2,30,Math.PI/2); wSet.add(e); }
+                if(!wSet.has(n)){ makeWall((xS+xE)/2,zS,30,0); wSet.add(n); } 
+                if(!wSet.has(s)){ makeWall((xS+xE)/2,zE,30,0); wSet.add(s); }
+                if(!wSet.has(w)){ makeWall(xS,(zS+zE)/2,30,Math.PI/2); wSet.add(w); } 
+                if(!wSet.has(e)){ makeWall(xE,(zS+zE)/2,30,Math.PI/2); wSet.add(e); }
             }
+
             playerBase = makeBase(playerSpawnPoint.x, playerSpawnPoint.z, 'player'); 
             aiBase = makeBase(aiSpawnPoint.x, aiSpawnPoint.z, 'enemy');
             
@@ -797,7 +802,7 @@
                 camera.quaternion.setFromEuler(new THREE.Euler(pitch, yaw, 0, 'YXZ'));
             }, {passive: false});
 
-            window.addEventListener('touchend', e => { 
+            window.addEventListener('touchend', () => { 
                 isTouchingLook = false; 
             });
             
@@ -971,7 +976,6 @@
             if(gameOverActive) return; 
             gameOverActive = true; 
 
-            // Edge-case Fix: Clear selection safely to prevent TypeError on deleted entities
             clearSelection();
 
             let loserBase = winnerTeam === 'player' ? aiBase : playerBase;
@@ -1094,10 +1098,12 @@
             let tObj={type:'tower',team:'neutral',x,z,group:g,components:[b,s,h,gn],radRing:rr,hb,hpBar:hp,costBillboard:cb,purchased:false,purchaseCount:0,level:1,hp:HP_M.tower,maxHp:HP_M.tower,attackCD:0,tD:35,fR:1.2};
             hb.userData.towerRef=tObj; towers.push(tObj); towerHitboxes.push(hb); upCost(tObj);
         }
+
         function ownTower(t,tm) {
             t.purchased=true; t.team=tm; t.hpBar.visible=true; upHB(t.hpBar,t.hp,t.maxHp);
             t.components.forEach(c=>c.material=new THREE.MeshStandardMaterial({map:tm==='player'?pTex:aTex})); t.radRing.material.color.setHex(tm==='player'?0x114488:0xaa1111); upCost(t);
         }
+
         function makeWall(x,z,len,rot) {
             let g=new THREE.Group(); g.position.set(x,getH(x,z),z); g.rotation.y=rot; let mat=new THREE.MeshStandardMaterial({color:0xaa6644,transparent:true,opacity:0.15});
             let sL=(len-6)/2, lW=new THREE.Mesh(new THREE.BoxGeometry(sL,3.5,0.8),mat); lW.position.set(-len/2+sL/2,1.75,0); g.add(lW);
@@ -1111,10 +1117,12 @@
             let wObj={type:'wall',team:'neutral',x,z,rotationY:rot,length:len,group:g,components:[lW,rW,gt],gateMesh:gt,hb,hpBar:hp,hpBarBack:hpB,costBillboard:cb,costBillboardBack:cbB,purchased:false,purchaseCount:0,level:1,isOpen:false,targetY:1.5,hp:HP_M.wall,maxHp:HP_M.wall};
             hb.userData.wallRef=wObj; walls.push(wObj); wallHitboxes.push(hb); upCost(wObj);
         }
+
         function ownWall(w,tm) {
             w.purchased=true; w.team=tm; w.hpBar.visible=w.hpBarBack.visible=true; upHB(w.hpBar,w.hp,w.maxHp); upHB(w.hpBarBack,w.hp,w.maxHp);
             w.components.forEach(c=>c.material=new THREE.MeshStandardMaterial({map:tm==='player'?pTex:aTex})); upCost(w);
         }
+
         function upStruct(o) {
             o.level++; if(o.type==='tower'){ let t=T_UP[o.level]; o.maxHp=t.hp; o.tD=t.dmg; o.fR=t.cd; } else { o.maxHp=W_UP[o.level].hp; }
             o.hp=o.maxHp; upHB(o.hpBar,o.hp,o.maxHp); if(o.hpBarBack)upHB(o.hpBarBack,o.hp,o.maxHp); upCost(o);
@@ -1168,7 +1176,7 @@
 
             let hb=new THREE.Mesh(new THREE.BoxGeometry(1.5,1.5,1.5),new THREE.MeshBasicMaterial({visible:false})); g.add(hb);
             let hp=makeHB(1.6,0.3); hp.position.y=typ==='infantry'?1.5:1.6; g.add(hp); 
-            let cb=makeBB("1",'#ffd700'); cb.position.y=typ==='infantry'?2.0:2.1; cb.rotation.y = tm === 'enemy' ? Math.PI : 0; g.add(cb); 
+            let cb=makeBB("1",'#ffd700'); cb.position.y=typ==='infantry'?2.0:2.1; g.add(cb); 
             g.position.copy(loc); scene.add(g);
             
             let o={id: uId, mesh:g, innerMeshGroup:img, tankTurretGroup:tur, rotorMesh:rotor, turretOT:0, turretTY:0, curTurY:0, hitbox:hb, ring:r, rangeRing:rangeRing, hpBar:hp, levelBillboard:cb, type:typ, team:tm, level:1, speed:typ==='helicopter'?12:(typ==='tank'?4:5.5), target:null, actCD:0, hp:HP_M[typ], maxHp:HP_M[typ]};
@@ -1182,7 +1190,15 @@
             projs.push({ mesh: sM, start: startPos.clone(), end: endPos.clone(), p: 0, team: team });
         }
 
-        // Edge-case Fix: Accurately subtract opponent gold on unit spawn
+        function spawnLaserLine(orig, tPt, team) {
+            let lM = new THREE.Line(
+                new THREE.BufferGeometry().setFromPoints([orig, tPt]),
+                new THREE.LineBasicMaterial({color: team === 'player' ? 0x00ffcc : 0xff2222})
+            );
+            scene.add(lM);
+            expls.push({m: lM, t: 0.15, type: 'laser'});
+        }
+
         socket.on('spawn_unit', (data) => {
             spU(data.type, data.team, new THREE.Vector3(data.pos.x, data.pos.y, data.pos.z), data.unitId);
             enemyGold = Math.max(0, enemyGold - COSTS[data.type]);
@@ -1201,7 +1217,7 @@
 
         socket.on('buy_structure', (data) => {
             if (data.type === 'tower') {
-                let t = towers.find(item => Math.hypot(item.x - data.x, item.z - data.z) < 0.2);
+                let t = towers.find(item => Math.hypot(item.x - data.x, item.z - data.z) < 1.0);
                 if (t) { t.purchaseCount = data.purchaseCount; ownTower(t, data.team); }
             } else if (data.type === 'wall') {
                 let w = findWall(data.x, data.z, data.rotationY);
@@ -1213,7 +1229,7 @@
 
         socket.on('upgrade_structure', (data) => {
             if (data.type === 'tower') {
-                let t = towers.find(item => Math.hypot(item.x - data.x, item.z - data.z) < 0.2);
+                let t = towers.find(item => Math.hypot(item.x - data.x, item.z - data.z) < 1.0);
                 if (t) { upStruct(t); }
             } else if (data.type === 'wall') {
                 let w = findWall(data.x, data.z, data.rotationY);
@@ -1223,7 +1239,6 @@
             document.getElementById('ai-gold-val').innerText = Math.floor(enemyGold);
         });
 
-        // Edge-case Fix: Accurately deduct opponent gold on tier upgrade & scale current HP proportionally
         socket.on('upgrade_unit', (data) => {
             let u = units.find(item => item.id === data.unitId);
             if(u) {
@@ -1260,7 +1275,7 @@
         socket.on('structure_attack', (data) => {
             let targetStruct = null;
             if (data.type === 'tower') {
-                targetStruct = towers.find(t => Math.hypot(t.x - data.x, t.z - data.z) < 0.2);
+                targetStruct = towers.find(t => Math.hypot(t.x - data.x, t.z - data.z) < 1.0);
             } else if (data.type === 'wall') {
                 targetStruct = findWall(data.x, data.z, data.rotationY);
             }
@@ -1273,6 +1288,10 @@
             spawnTankProjectile(new THREE.Vector3(data.start.x, data.start.y, data.start.z), new THREE.Vector3(data.end.x, data.end.y, data.end.z), data.team);
         });
 
+        socket.on('laser_shot_fx', (data) => {
+            spawnLaserLine(new THREE.Vector3(data.start.x, data.start.y, data.start.z), new THREE.Vector3(data.end.x, data.end.y, data.end.z), data.team);
+        });
+
         socket.on('unit_killed', (data) => {
             let u = units.find(item => item.id === data.unitId);
             if (u) {
@@ -1283,7 +1302,7 @@
         socket.on('structure_destroyed', (data) => {
             let target = null;
             if (data.type === 'tower') {
-                target = towers.find(t => Math.hypot(t.x - data.x, t.z - data.z) < 0.2);
+                target = towers.find(t => Math.hypot(t.x - data.x, t.z - data.z) < 1.0);
             } else if (data.type === 'wall') {
                 target = findWall(data.x, data.z, data.rotationY);
             }
@@ -1313,7 +1332,6 @@
             d.normalize(); 
             let ray = new THREE.Ray(orig, d), cObstacle = null, cD = dst;
             for(let w of walls){
-                // Physical gate check: only transparent to LOS if lowered below 0.2
                 if(!w.purchased || (w.level >= 4 && w.gateMesh.position.y < 0.2)) continue;
                 if(targetObj && targetObj === w) continue;
                 let box = new THREE.Box3().setFromObject(w.components[0].parent), pt = new THREE.Vector3();
@@ -1328,7 +1346,6 @@
             return cObstacle;
         }
 
-        // Edge-case Fix: Physical gate height evaluation prevents phasing or snapping
         function chkW(u, nX, nZ) {
             if(u && u.type === 'helicopter') return false;
             for(let w of walls){
@@ -1352,6 +1369,7 @@
             let uHbs = units.filter(u => u.team === myTeam).map(u => u.hitbox);
             let clU = rc.intersectObjects(uHbs);
 
+            // 1. Friendly Unit Selection / Upgrade
             if(clU.length > 0) {
                 let u = clU[0].object.parent.userData.ref || clU[0].object.userData.ref;
                 if(u && u.team === myTeam) {
@@ -1388,51 +1406,79 @@
                         selected = u; u.ring.visible = true; u.rangeRing.material.opacity = 0.5;
                         updateDeselectButtonState();
                     }
+                    return;
                 }
-            } else if(tH.length > 0) {
+            }
+
+            // 2. Tower Purchase / Upgrade (Friendly or Neutral)
+            if(tH.length > 0) {
                 let t = tH[0].object.userData.towerRef;
-                let cost = COSTS.tower * Math.pow(2, t.purchaseCount);
-                if(!t.purchased) {
-                    let check = checkPlacementValidity(t, myTeam, true);
-                    if(!check.ok) {
-                        showNotification(check.reason);
-                        return;
+                let isEnemyTower = (t.purchased && t.team !== myTeam);
+
+                if(!isEnemyTower) {
+                    let cost = COSTS.tower * Math.pow(2, t.purchaseCount);
+                    if(!t.purchased) {
+                        let check = checkPlacementValidity(t, myTeam, true);
+                        if(!check.ok) {
+                            showNotification(check.reason);
+                            return;
+                        }
                     }
+                    if(!t.purchased && gold >= cost) {
+                        gold -= cost; 
+                        document.getElementById('gold-val').innerText = gold; 
+                        ownTower(t, myTeam);
+                        if(currentRoomId) socket.emit('buy_structure', { roomId: currentRoomId, type: 'tower', x: t.x, z: t.z, team: myTeam, purchaseCount: t.purchaseCount, cost: cost });
+                    } else if(t.team === myTeam && t.level < 5 && gold >= T_UP[t.level+1].cost) {
+                        let upCostVal = T_UP[t.level+1].cost;
+                        gold -= upCostVal; 
+                        document.getElementById('gold-val').innerText = gold; 
+                        upStruct(t);
+                        if(currentRoomId) socket.emit('upgrade_structure', { roomId: currentRoomId, type: 'tower', x: t.x, z: t.z, cost: upCostVal });
+                    }
+                    return;
                 }
-                if(!t.purchased && gold >= cost) {
-                    gold -= cost; document.getElementById('gold-val').innerText = gold; ownTower(t, myTeam);
-                    if(currentRoomId) socket.emit('buy_structure', { roomId: currentRoomId, type: 'tower', x: t.x, z: t.z, team: myTeam, purchaseCount: t.purchaseCount, cost: cost });
-                } else if(t.team === myTeam && t.level < 5 && gold >= T_UP[t.level+1].cost) {
-                    let upCostVal = T_UP[t.level+1].cost;
-                    gold -= upCostVal; document.getElementById('gold-val').innerText = gold; upStruct(t);
-                    if(currentRoomId) socket.emit('upgrade_structure', { roomId: currentRoomId, type: 'tower', x: t.x, z: t.z, cost: upCostVal });
-                }
-            } else if(wH.length > 0) {
+            }
+
+            // 3. Wall Purchase / Upgrade (Friendly or Neutral)
+            if(wH.length > 0) {
                 let w = wH[0].object.userData.wallRef;
-                let cost = COSTS.wall * Math.pow(2, w.purchaseCount);
-                if(!w.purchased) {
-                    let check = checkPlacementValidity(w, myTeam, false);
-                    if(!check.ok) {
-                        showNotification(check.reason);
-                        return;
+                let isEnemyWall = (w.purchased && w.team !== myTeam);
+
+                if(!isEnemyWall) {
+                    let cost = COSTS.wall * Math.pow(2, w.purchaseCount);
+                    if(!w.purchased) {
+                        let check = checkPlacementValidity(w, myTeam, false);
+                        if(!check.ok) {
+                            showNotification(check.reason);
+                            return;
+                        }
                     }
-                }
-                if(!w.purchased && gold >= cost) {
-                    gold -= cost; document.getElementById('gold-val').innerText = gold; ownWall(w, myTeam);
-                    if(currentRoomId) socket.emit('buy_structure', { roomId: currentRoomId, type: 'wall', x: w.x, z: w.z, rotationY: w.rotationY, team: myTeam, purchaseCount: w.purchaseCount, cost: cost });
-                } else if(w.team === myTeam) {
-                    if(w.level < 4 && gold >= W_UP[w.level+1].cost) { 
-                        let upCostVal = W_UP[w.level+1].cost;
-                        gold -= upCostVal; document.getElementById('gold-val').innerText = gold; upStruct(w); 
-                        if(currentRoomId) socket.emit('upgrade_structure', { roomId: currentRoomId, type: 'wall', x: w.x, z: w.z, rotationY: w.rotationY, cost: upCostVal });
-                    } else if(w.level >= 4) { 
-                        w.isOpen = !w.isOpen; 
-                        w.targetY = w.isOpen ? -1.4 : 1.5; 
-                        upCost(w); 
-                        if(currentRoomId) socket.emit('toggle_gate', { roomId: currentRoomId, x: w.x, z: w.z, rotationY: w.rotationY, isOpen: w.isOpen });
+                    if(!w.purchased && gold >= cost) {
+                        gold -= cost; 
+                        document.getElementById('gold-val').innerText = gold; 
+                        ownWall(w, myTeam);
+                        if(currentRoomId) socket.emit('buy_structure', { roomId: currentRoomId, type: 'wall', x: w.x, z: w.z, rotationY: w.rotationY, team: myTeam, purchaseCount: w.purchaseCount, cost: cost });
+                    } else if(w.team === myTeam) {
+                        if(w.level < 4 && gold >= W_UP[w.level+1].cost) { 
+                            let upCostVal = W_UP[w.level+1].cost;
+                            gold -= upCostVal; 
+                            document.getElementById('gold-val').innerText = gold; 
+                            upStruct(w); 
+                            if(currentRoomId) socket.emit('upgrade_structure', { roomId: currentRoomId, type: 'wall', x: w.x, z: w.z, rotationY: w.rotationY, cost: upCostVal });
+                        } else if(w.level >= 4) { 
+                            w.isOpen = !w.isOpen; 
+                            w.targetY = w.isOpen ? -1.4 : 1.5; 
+                            upCost(w); 
+                            if(currentRoomId) socket.emit('toggle_gate', { roomId: currentRoomId, x: w.x, z: w.z, rotationY: w.rotationY, isOpen: w.isOpen });
+                        }
                     }
+                    return;
                 }
-            } else if(tHits.length > 0 && selected) {
+            }
+
+            // 4. Movement Order: Empty terrain OR clicking enemy structures falls through here directly
+            if(tHits.length > 0 && selected) {
                 selected.target = tHits[0].point.clone();
                 if(currentRoomId) {
                     socket.emit('unit_order_move', { 
@@ -1492,6 +1538,7 @@
                 }
             }
 
+            // Towers: Autonomous firing + network laser sync
             towers.forEach(t => {
                 if(!t.purchased || t.team !== myTeam) return;
                 t.attackCD -= delta;
@@ -1510,22 +1557,31 @@
                         t.attackCD = t.fR;
                         let orig = t.group.position.clone().add(new THREE.Vector3(0, 8, 0));
                         let tPt = closestEnemy.mesh.position.clone().add(new THREE.Vector3(0, 0.5, 0));
-                        let lM = new THREE.Line(new THREE.BufferGeometry().setFromPoints([orig, tPt]), new THREE.LineBasicMaterial({color: t.team === 'player' ? 0x00ffcc : 0xff3300}));
-                        scene.add(lM);
-                        expls.push({m: lM, t: 0.15, type: 'laser'});
                         
-                        applyDamageToTarget(closestEnemy, t.tD);
+                        spawnLaserLine(orig, tPt, t.team);
                         if(currentRoomId) {
+                            socket.emit('laser_shot_fx', {
+                                roomId: currentRoomId,
+                                start: { x: orig.x, y: orig.y, z: orig.z },
+                                end: { x: tPt.x, y: tPt.y, z: tPt.z },
+                                team: t.team
+                            });
                             socket.emit('unit_attack', { roomId: currentRoomId, targetUnitId: closestEnemy.id, damage: t.tD });
                         }
+                        applyDamageToTarget(closestEnemy, t.tD);
                     }
                 }
             });
 
+            // Units: Autonomous combat + network visual sync + 360-degree billboards
             units.forEach(u => {
                 if(u.actCD > 0) u.actCD -= delta;
                 let gh = getH(u.mesh.position.x, u.mesh.position.z);
                 let rng = u.type === 'infantry' ? 18 : (u.type === 'tank' ? 22 : 25);
+
+                // Billboard facing camera
+                if (u.hpBar) u.hpBar.quaternion.copy(camera.quaternion);
+                if (u.levelBillboard) u.levelBillboard.quaternion.copy(camera.quaternion);
 
                 if(u.type === 'helicopter' && u.rotorMesh) {
                     u.rotorMesh.rotation.y += 25 * delta;
@@ -1600,9 +1656,15 @@
                                     });
                                 }
                             } else {
-                                let lM = new THREE.Line(new THREE.BufferGeometry().setFromPoints([orig, tPt]), new THREE.LineBasicMaterial({color: u.team === 'player' ? 0xff0055 : 0xff2222}));
-                                scene.add(lM);
-                                expls.push({m: lM, t: 0.15, type: 'laser'});
+                                spawnLaserLine(orig, tPt, u.team);
+                                if(currentRoomId) {
+                                    socket.emit('laser_shot_fx', {
+                                        roomId: currentRoomId,
+                                        start: { x: orig.x, y: orig.y, z: orig.z },
+                                        end: { x: tPt.x, y: tPt.y, z: tPt.z },
+                                        team: u.team
+                                    });
+                                }
                             }
 
                             if(bestTarget.type === 'unit') {
@@ -1665,6 +1727,7 @@
                 u.mesh.position.y = THREE.MathUtils.lerp(u.mesh.position.y, targetYPos, 5 * delta);
             });
 
+            // Fast camera movement & deceleration
             velocity.multiplyScalar(1 - 14 * delta);
             let f = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
             let r = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
